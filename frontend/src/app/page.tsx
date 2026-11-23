@@ -33,6 +33,8 @@ export default function Home() {
   const { user, isLoading } = useAuth();
   const [activeTab, setActiveTab] = useState('home');
   const [isAiAssistantOpen, setIsAiAssistantOpen] = useState(false);
+  const [aiAssistantMode, setAiAssistantMode] = useState<'voice' | 'image' | 'manual' | 'combined'>('voice');
+  const [searchQuery, setSearchQuery] = useState('');
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [selectedTrackingOrderId, setSelectedTrackingOrderId] = useState<string | null>(null);
   const [paymentOrder, setPaymentOrder] = useState<Order | null>(null);
@@ -84,7 +86,16 @@ export default function Home() {
       {/* Top Navigation */}
       <Navbar
         onOpenCart={() => setIsCartOpen(true)}
-        onOpenAiAssistant={() => setIsAiAssistantOpen(true)}
+        onOpenAiAssistant={() => {
+          setAiAssistantMode('voice');
+          setIsAiAssistantOpen(true);
+        }}
+        onNavigateTab={(tab) => {
+          setActiveTab(tab);
+          if (tab === 'orders') fetchUserOrders();
+        }}
+        searchQuery={searchQuery}
+        onSearchChange={(q) => setSearchQuery(q)}
       />
 
       <div className="flex flex-1">
@@ -95,7 +106,10 @@ export default function Home() {
             setActiveTab(tab);
             if (tab === 'orders') fetchUserOrders();
           }}
-          onOpenAiAssistant={() => setIsAiAssistantOpen(true)}
+          onOpenAiAssistant={() => {
+            setAiAssistantMode('voice');
+            setIsAiAssistantOpen(true);
+          }}
           onOpenCart={() => setIsCartOpen(true)}
         />
 
@@ -104,9 +118,21 @@ export default function Home() {
           {/* TAB 1: CUSTOMER VIEW */}
           {activeTab === 'home' && (
             <CustomerView
-              onOpenAiAssistant={() => setIsAiAssistantOpen(true)}
+              onOpenAiAssistant={(mode = 'voice') => {
+                setAiAssistantMode(mode);
+                setIsAiAssistantOpen(true);
+              }}
               onOpenCart={() => setIsCartOpen(true)}
               onSelectService={() => setIsCartOpen(true)}
+              onNavigateTab={(tab) => {
+                setActiveTab(tab);
+                if (tab === 'orders') fetchUserOrders();
+              }}
+              onSelectOrderToTrack={(ordId) => {
+                setSelectedTrackingOrderId(ordId);
+                setActiveTab('orders');
+              }}
+              searchQuery={searchQuery}
             />
           )}
 
@@ -244,6 +270,7 @@ export default function Home() {
       {/* Modals & Drawers */}
       <AIHybridOrderAssistant
         isOpen={isAiAssistantOpen}
+        initialTab={aiAssistantMode}
         onClose={() => setIsAiAssistantOpen(false)}
         onProceedToCheckout={() => setIsCartOpen(true)}
       />

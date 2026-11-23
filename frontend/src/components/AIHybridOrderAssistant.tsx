@@ -27,16 +27,24 @@ interface AIHybridOrderAssistantProps {
   isOpen: boolean;
   onClose: () => void;
   onProceedToCheckout?: () => void;
+  initialTab?: 'voice' | 'image' | 'manual' | 'combined';
 }
 
 export const AIHybridOrderAssistant: React.FC<AIHybridOrderAssistantProps> = ({
   isOpen,
   onClose,
   onProceedToCheckout,
+  initialTab,
 }) => {
   const { addItem, items: cartItems, setPickupAddress } = useCart();
 
   const [activeSubTab, setActiveSubTab] = useState<'voice' | 'image' | 'manual' | 'combined'>('voice');
+
+  useEffect(() => {
+    if (initialTab && isOpen) {
+      setActiveSubTab(initialTab);
+    }
+  }, [initialTab, isOpen]);
 
   // Input states
   const [manualQuery, setManualQuery] = useState('');

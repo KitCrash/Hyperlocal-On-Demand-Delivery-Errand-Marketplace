@@ -3,7 +3,7 @@ const isGithubActions = process.env.GITHUB_ACTIONS === 'true';
 
 const nextConfig = {
   reactStrictMode: false,
-  output: 'export',
+  output: isGithubActions ? 'export' : undefined,
   images: {
     unoptimized: true,
   },
