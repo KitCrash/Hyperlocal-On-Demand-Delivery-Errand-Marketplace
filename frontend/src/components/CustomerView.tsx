@@ -58,7 +58,6 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
   const [loading, setLoading] = useState(true);
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [selectedProductHistory, setSelectedProductHistory] = useState<any | null>(null);
-  const [reorderSuccessNotice, setReorderSuccessNotice] = useState<string | null>(null);
 
   // Rotating Hero Banner State (Changes every 1 second)
   const promoSlides = [
@@ -233,50 +232,28 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
     }
   };
 
-  // Quick Action 1: Re-Order Last / Popular Items
-  const handleQuickReorder = () => {
-    const popularStaples = products.slice(0, 3);
-    if (popularStaples.length > 0) {
-      popularStaples.forEach((p) => {
-        addItem({
-          productId: p.id,
-          name: p.name,
-          quantity: 1,
-          unit: p.unit,
-          inputMethod: 'MANUAL',
-          estimatedPrice: p.estimatedPrice,
-          confidenceScore: 1.0,
-          imageUrl: p.imageUrl,
-        });
-      });
-      setReorderSuccessNotice('Added 3 everyday mandi items to your cart!');
-      setTimeout(() => setReorderSuccessNotice(null), 3000);
-      onOpenCart();
-    }
-  };
-
   const activeSlide = promoSlides[currentSlideIndex];
 
   // Helper for Order Status Badge
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'PENDING':
-        return <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-bold">Pending Rider</span>;
+        return <span className="text-xs bg-amber-100 text-amber-800 font-bold px-2.5 py-1 rounded-full">Pending</span>;
       case 'ACCEPTED':
       case 'PARTNER_ASSIGNED':
-        return <span className="px-2 py-0.5 rounded-full bg-sky-50 text-sky-800 border border-sky-200 text-[10px] font-bold">Partner Assigned</span>;
+        return <span className="text-xs bg-sky-100 text-sky-800 font-bold px-2.5 py-1 rounded-full">Assigned</span>;
       case 'SHOPPING':
-        return <span className="px-2 py-0.5 rounded-full bg-orange-50 text-orange-800 border border-orange-200 text-[10px] font-bold">Shopping in Mandi</span>;
+        return <span className="text-xs bg-orange-100 text-orange-800 font-bold px-2.5 py-1 rounded-full">Shopping</span>;
       case 'PRICE_APPROVAL_PENDING':
-        return <span className="px-2 py-0.5 rounded-full bg-red-50 text-red-800 border border-red-200 text-[10px] font-bold">Price Approval</span>;
+        return <span className="text-xs bg-red-100 text-red-800 font-bold px-2.5 py-1 rounded-full">Price Approval</span>;
       case 'PURCHASED':
-        return <span className="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-800 border border-indigo-200 text-[10px] font-bold">Purchased</span>;
+        return <span className="text-xs bg-indigo-100 text-indigo-800 font-bold px-2.5 py-1 rounded-full">Purchased</span>;
       case 'OUT_FOR_DELIVERY':
-        return <span className="px-2 py-0.5 rounded-full bg-purple-50 text-purple-800 border border-purple-200 text-[10px] font-bold">Out for Delivery</span>;
+        return <span className="text-xs bg-purple-100 text-purple-800 font-bold px-2.5 py-1 rounded-full">In Transit</span>;
       case 'DELIVERED':
-        return <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-bold">Delivered</span>;
+        return <span className="text-xs bg-emerald-100 text-emerald-800 font-bold px-2.5 py-1 rounded-full">Delivered</span>;
       default:
-        return <span className="px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-700 border border-neutral-200 text-[10px] font-bold">{status.replace(/_/g, ' ')}</span>;
+        return <span className="text-xs bg-neutral-100 text-neutral-700 font-bold px-2.5 py-1 rounded-full">{status.replace(/_/g, ' ')}</span>;
     }
   };
 
@@ -370,19 +347,6 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
 
   return (
     <div className="space-y-6 sm:space-y-7 max-w-7xl mx-auto pb-20 md:pb-8">
-      {/* Toast / Notification when reorder is triggered */}
-      {reorderSuccessNotice && (
-        <div className="p-3 rounded-2xl bg-emerald-500 text-white text-xs font-bold shadow-lg flex items-center justify-between animate-in slide-in-from-top duration-200">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4" />
-            <span>{reorderSuccessNotice}</span>
-          </div>
-          <button onClick={() => setReorderSuccessNotice(null)} className="text-white/80 hover:text-white">
-            ✕
-          </button>
-        </div>
-      )}
-
       {/* =========================================================================
           2. HERO BANNER: Full-width, rotating text every 1s with smooth transitions
           ========================================================================= */}
@@ -618,47 +582,24 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
       </section>
 
       {/* =========================================================================
-          4. QUICK ACTIONS SECTION: 3 compact horizontal action buttons
+          4. QUICK ACTIONS SECTION: One small, clean "+ Add" button
           ========================================================================= */}
-      <section className="space-y-2">
-        <div className="grid grid-cols-3 gap-2 sm:gap-3">
-          {/* Quick Action 1: Re-Order Last Items */}
-          <button
-            onClick={handleQuickReorder}
-            className="flex items-center justify-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 px-2 sm:px-4 rounded-2xl bg-white border border-[#E8E1D7] hover:border-brand-500/40 hover:bg-neutral-50 shadow-sm active:scale-95 transition-all text-neutral-800"
-            title="Quick Re-Order Everyday Essentials"
-          >
-            <RotateCcw className="w-3.5 h-3.5 text-brand-600 shrink-0" />
-            <span className="text-[11px] sm:text-xs font-black truncate">Quick Re-Order</span>
-          </button>
-
-          {/* Quick Action 2: Live Tracking Radar */}
-          <button
-            onClick={() => onNavigateTab('orders')}
-            className="flex items-center justify-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 px-2 sm:px-4 rounded-2xl bg-white border border-[#E8E1D7] hover:border-brand-500/40 hover:bg-neutral-50 shadow-sm active:scale-95 transition-all text-neutral-800"
-            title="Track Active Delivery Orders"
-          >
-            <Compass className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-            <span className="text-[11px] sm:text-xs font-black truncate">Live Tracking</span>
-          </button>
-
-          {/* Quick Action 3: Upload Prescription / Bill */}
-          <button
-            onClick={() => onOpenAiAssistant('image')}
-            className="flex items-center justify-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 px-2 sm:px-4 rounded-2xl bg-white border border-[#E8E1D7] hover:border-brand-500/40 hover:bg-neutral-50 shadow-sm active:scale-95 transition-all text-neutral-800"
-            title="Scan Prescription or Handwritten Shopping List"
-          >
-            <Camera className="w-3.5 h-3.5 text-purple-600 shrink-0" />
-            <span className="text-[11px] sm:text-xs font-black truncate">Upload Rx / Bill</span>
-          </button>
-        </div>
+      <section className="flex items-center">
+        <button
+          onClick={onOpenCart}
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-[#E8E1D7] hover:border-brand-500/50 hover:bg-neutral-50 shadow-xs text-xs font-bold text-neutral-800 transition-all active:scale-95 group"
+          title="Add items or custom errand"
+        >
+          <Plus className="w-3.5 h-3.5 text-brand-600 group-hover:rotate-90 transition-transform" />
+          <span>Add</span>
+        </button>
       </section>
 
       {/* =========================================================================
-          5. ORDER HISTORY SECTION: Vertically stacked rows of real orders
+          5. ORDER HISTORY SECTION: Matches "Browse Daily Mandi" list layout
           ========================================================================= */}
-      <section className="space-y-3">
-        <div className="flex items-center justify-between">
+      <section className="space-y-1.5">
+        <div className="flex items-center justify-between pb-1.5 border-b border-[#E8E1D7]">
           <div>
             <h2 className="text-base sm:text-lg font-black text-neutral-900 tracking-tight">
               Order History
@@ -669,7 +610,7 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
           </div>
           <button
             onClick={() => onNavigateTab('orders')}
-            className="text-xs font-extrabold text-brand-600 hover:text-brand-700 flex items-center gap-1 group py-1"
+            className="text-xs font-bold text-brand-600 hover:text-brand-700 flex items-center gap-0.5 group py-1"
           >
             <span>View All</span>
             <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
@@ -677,31 +618,16 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
         </div>
 
         {loadingOrders ? (
-          <div className="space-y-2">
+          <div className="space-y-2 py-1">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-16 rounded-2xl bg-neutral-200 animate-pulse" />
+              <div key={i} className="h-11 rounded-xl bg-neutral-200/60 animate-pulse" />
             ))}
           </div>
         ) : orders.length === 0 ? (
-          <div className="p-6 rounded-3xl bg-white border border-[#E8E1D7] text-center space-y-2 shadow-xs">
-            <Package className="w-8 h-8 text-neutral-300 mx-auto" />
-            <h4 className="text-xs font-bold text-neutral-700">No Orders Placed Yet</h4>
-            <p className="text-[11px] text-neutral-400 max-w-sm mx-auto">
-              Select any of the 5 service categories above or tap Voice Order to experience our hyperlocal errand service!
-            </p>
-            <button
-              onClick={() => {
-                setSelectedCategory('Vegetables & Mandi');
-                setServiceType('GROCERY_SHOPPING');
-              }}
-              className="mt-2 py-1.5 px-4 rounded-full bg-neutral-900 text-white text-[11px] font-bold hover:bg-neutral-800 transition-colors"
-            >
-              Start First Order
-            </button>
-          </div>
+          <p className="text-xs text-neutral-400 py-2 font-medium">No orders yet</p>
         ) : (
-          <div className="space-y-2.5">
-            {orders.slice(0, 4).map((ord) => {
+          <div>
+            {orders.slice(0, 5).map((ord) => {
               const formattedDate = new Date(ord.createdAt).toLocaleDateString('en-IN', {
                 day: 'numeric',
                 month: 'short',
@@ -724,50 +650,37 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
               return (
                 <div
                   key={ord.id}
-                  className="p-3.5 sm:p-4 rounded-2xl bg-white border border-[#E8E1D7] shadow-xs hover:shadow-sm hover:border-brand-500/30 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
+                  onClick={() => {
+                    if (onSelectOrderToTrack) {
+                      onSelectOrderToTrack(ord.id);
+                    } else {
+                      onNavigateTab('orders');
+                    }
+                  }}
+                  className="flex items-center justify-between border-b border-[#E8E1D7] py-2.5 sm:py-3 cursor-pointer hover:bg-black/[0.015] -mx-1 px-1 rounded-lg transition-colors group"
                 >
-                  {/* Left: Icon + Service Name + Date */}
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 rounded-2xl bg-neutral-100 flex items-center justify-center shrink-0 border border-neutral-200">
-                      {getServiceIcon(ord.serviceType)}
-                    </div>
+                  {/* Left: Small service icon + Order name & details */}
+                  <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                    <span className="text-xl shrink-0">{getServiceIcon(ord.serviceType)}</span>
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h4 className="text-xs sm:text-sm font-extrabold text-neutral-900 truncate">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <h4 className="text-sm font-extrabold text-neutral-900 group-hover:text-brand-600 transition-colors truncate">
                           {serviceLabel}
                         </h4>
-                        <span className="text-[10px] text-neutral-400 font-mono font-bold">
+                        <span className="text-[10px] text-neutral-400 font-mono font-medium shrink-0">
                           {ord.orderNumber}
                         </span>
                       </div>
-                      <p className="text-[11px] text-neutral-500 mt-0.5">
-                        {formattedDate}
+                      {/* Date and amount below the order name */}
+                      <p className="text-[11px] text-neutral-500 mt-0.5 truncate">
+                        {formattedDate} · <span className="font-bold text-neutral-800">₹{ord.totalAmount || ord.actualProductTotal || ord.estimatedProductTotal || 0}</span>
                       </p>
                     </div>
                   </div>
 
-                  {/* Right: Status badge + Total Amount + View Details Button */}
-                  <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto pt-1 sm:pt-0 border-t sm:border-t-0 border-neutral-100">
-                    <div className="text-left sm:text-right">
-                      <div className="text-xs sm:text-sm font-black text-neutral-900">
-                        ₹{ord.totalAmount || ord.actualProductTotal || ord.estimatedProductTotal || 0}
-                      </div>
-                      <div className="mt-0.5">{getStatusBadge(ord.status)}</div>
-                    </div>
-
-                    <button
-                      onClick={() => {
-                        if (onSelectOrderToTrack) {
-                          onSelectOrderToTrack(ord.id);
-                        } else {
-                          onNavigateTab('orders');
-                        }
-                      }}
-                      className="py-1.5 px-3 rounded-xl bg-neutral-100 hover:bg-neutral-900 hover:text-white text-neutral-800 text-xs font-bold transition-all shrink-0 flex items-center gap-1 shadow-xs"
-                    >
-                      <span>View Details</span>
-                      <ArrowRight className="w-3 h-3" />
-                    </button>
+                  {/* Right: Order status badge */}
+                  <div className="shrink-0 pl-2">
+                    {getStatusBadge(ord.status)}
                   </div>
                 </div>
               );
