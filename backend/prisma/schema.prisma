@@ -1,0 +1,217 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String         @id @default(uuid())
+  name            String
+  email           String         @unique
+  phone           String         @unique
+  passwordHash    String
+  role            String         @default("CUSTOMER") // CUSTOMER, PARTNER, ADMIN
+  avatarUrl       String?
+  isAvailable     Boolean        @default(false)
+  currentLat      Float?
+  currentLng      Float?
+  vehicleType     String?        // BICYCLE, MOTORCYCLE, SCOOTER, ON_FOOT
+  rating          Float          @default(5.0)
+  totalRatings    Int            @default(0)
+  walletBalance   Float          @default(0.0)
+  isVerified      Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  customerOrders  Order[]        @relation("CustomerOrders")
+  partnerOrders   Order[]        @relation("PartnerOrders")
+  transactions    Transaction[]
+  notifications   Notification[]
+  reviewsGiven    Review[]       @relation("ReviewsGiven")
+  reviewsReceived Review[]       @relation("ReviewsReceived")
+  complaints      Complaint[]    @relation("UserComplaints")
+}
+
+model Store {
+  id            String    @id @default(uuid())
+  name          String
+  category      String    // GROCERY_VEGGIES, LOCAL_SHOP, PHARMACY, RESTAURANT, GENERAL_STORE
+  address       String
+  lat           Float
+  lng           Float
+  imageUrl      String?
+  isLocalMarket Boolean   @default(false) // rural / vegetable mandi where prices fluctuate daily
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  products      Product[]
+}
+
+model Product {
+  id                 String              @id @default(uuid())
+  storeId            String?
+  store              Store?              @relation(fields: [storeId], references: [id])
+  name               String
+  nameBengali        String?
+  nameHindi          String?
+  category           String
+  unit               String              // kg, 500g, 250g, packet, litre, piece, bunch
+  estimatedPrice     Float               // Benchmark or estimated price
+  isFixedPrice       Boolean             @default(false) // false for mandi produce / unpriced items
+  currentMarketPrice Float               // Latest verified local market price
+  minHistoricalPrice Float               @default(0.0)
+  maxHistoricalPrice Float               @default(0.0)
+  avgHistoricalPrice Float               @default(0.0)
+  imageUrl           String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  historicalPrices   HistoricalPrice[]
+  orderItems         OrderItem[]
+}
+
+model HistoricalPrice {
+  id                  String    @id @default(uuid())
+  productId           String
+  product             Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  recordedPrice       Float
+  recordedAt          DateTime  @default(now())
+  verifiedByPartnerId String?
+  marketName          String?
+  notes               String?
+}
+
+model Order {
+  id                    String        @id @default(uuid())
+  orderNumber           String        @unique
+  customerId            String
+  customer              User          @relation("CustomerOrders", fields: [customerId], references: [id])
+  partnerId             String?
+  partner               User?         @relation("PartnerOrders", fields: [partnerId], references: [id])
+  serviceType           String        // GROCERY_SHOPPING, SHOP_TO_HOME, PARCEL_PICKUP_DROP, FOOD_ESSENTIALS, CUSTOM_ERRAND
+  status                String        @default("PENDING") 
+  // PENDING, PARTNER_ASSIGNED, ACCEPTED, SHOPPING, PRICE_APPROVAL_PENDING, PRICE_APPROVED, PRICE_REJECTED, PURCHASED, OUT_FOR_DELIVERY, DELIVERED, CANCELLED
+
+  pickupAddress         String
+  pickupLat             Float?
+  pickupLng             Float?
+  pickupNotes           String?
+
+  deliveryAddress       String
+  deliveryLat           Float?
+  deliveryLng           Float?
+  deliveryNotes         String?
+
+  errandInstructions    String?
+  customTaskDetails     String?
+
+  estimatedProductTotal Float         @default(0.0)
+  actualProductTotal    Float         @default(0.0)
+  deliveryFee           Float         @default(30.0)
+  platformCommission    Float         @default(10.0)
+  partnerEarnings       Float         @default(20.0)
+  tipAmount             Float         @default(0.0)
+  totalAmount           Float         @default(0.0)
+
+  // Dynamic pricing approval workflow
+  priceApprovalStatus   String        @default("NONE") // NONE, PENDING, APPROVED, REJECTED
+  priceChangeReason     String?
+  priceAlertFlag        Boolean       @default(false) // Flagged if price variance > 20%
+  purchaseProofUrl      String?
+  purchaseProofNote     String?
+
+  deliveryProofUrl      String?
+  deliveryOtp           String?
+
+  paymentMethod         String        @default("COD") // UPI_ONLINE, DIRECT_UPI, CARD, NET_BANKING, COD
+  paymentStatus         String        @default("PENDING") // PENDING, PAID, REFUNDED, COD_COLLECTED
+  directUpiUtr          String?
+  directUpiVerified     Boolean       @default(false)
+
+  customerNotes         String?
+  cancelReason          String?
+
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  items                 OrderItem[]
+  transactions          Transaction[]
+  reviews               Review[]
+  complaints            Complaint[]
+}
+
+model OrderItem {
+  id              String   @id @default(uuid())
+  orderId         String
+  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId       String?
+  product         Product? @relation(fields: [productId], references: [id])
+  name            String
+  quantity        Float    @default(1.0)
+  unit            String   @default("piece")
+  inputMethod     String   @default("MANUAL") // MANUAL, VOICE, IMAGE_OCR
+  estimatedPrice  Float    @default(0.0)
+  actualPrice     Float    @default(0.0)
+  isApproved      Boolean  @default(true)
+  confidenceScore Float    @default(1.0)
+  uncertaintyFlag String?
+}
+
+model Transaction {
+  id            String   @id @default(uuid())
+  orderId       String?
+  order         Order?   @relation(fields: [orderId], references: [id])
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id])
+  type          String   // CUSTOMER_PAYMENT, PRODUCT_COST_REIMBURSEMENT, DELIVERY_FEE, PLATFORM_COMMISSION, PARTNER_EARNINGS, COD_COLLECTED, REFUND, SETTLEMENT
+  amount        Float
+  status        String   @default("COMPLETED") // PENDING, COMPLETED, FAILED
+  paymentMethod String?
+  referenceId   String?
+  notes         String?
+  createdAt     DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String   // CUSTOMER, PARTNER, ADMIN
+  title     String
+  message   String
+  type      String   // ORDER_UPDATE, PRICE_APPROVAL, PAYMENT, SYSTEM, FRAUD_ALERT
+  isRead    Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+}
+
+model Review {
+  id          String   @id @default(uuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  customerId  String
+  customer    User     @relation("ReviewsGiven", fields: [customerId], references: [id])
+  partnerId   String
+  partner     User     @relation("ReviewsReceived", fields: [partnerId], references: [id])
+  rating      Int      // 1 to 5
+  comment     String?
+  tags        String?  // comma-separated tags e.g. "Polite,Fast delivery,Fresh items"
+  createdAt   DateTime @default(now())
+}
+
+model Complaint {
+  id              String   @id @default(uuid())
+  orderId         String?
+  order           Order?   @relation(fields: [orderId], references: [id])
+  complainantId   String
+  complainant     User     @relation("UserComplaints", fields: [complainantId], references: [id])
+  subject         String
+  description     String
+  status          String   @default("OPEN") // OPEN, INVESTIGATING, RESOLVED, DISMISSED
+  resolutionNotes String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
