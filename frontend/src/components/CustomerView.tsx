@@ -37,6 +37,8 @@ import {
   MessageSquare,
   ChevronDown,
   Loader2,
+  Square,
+  MicOff,
 } from 'lucide-react';
 
 interface CustomerViewProps {
@@ -96,9 +98,29 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const recognitionRef = useRef<any>(null);
+  const shouldKeepRecordingRef = useRef<boolean>(false);
+  const accumulatedTranscriptRef = useRef<string>('');
   const [isScanningPhoto, setIsScanningPhoto] = useState(false);
   const [isListeningVoice, setIsListeningVoice] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [statusToast, setStatusToast] = useState<{ message: string; type: 'info' | 'success' | 'error' } | null>(null);
+
+  // Timer for voice recording duration
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    if (isListeningVoice) {
+      setRecordingSeconds(0);
+      interval = setInterval(() => {
+        setRecordingSeconds((prev) => prev + 1);
+      }, 1000);
+    } else {
+      setRecordingSeconds(0);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isListeningVoice]);
 
   // Directly handle camera snap or photo upload & instant AI parsing
   const handleDirectPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -157,34 +179,32 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
     }
   };
 
-  // Directly handle live voice note
-  const handleDirectVoiceNote = () => {
-    const SpeechRecognition =
-      typeof window !== 'undefined'
-        ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-        : null;
+  // Toggle live voice recording (Only stops when the user clicks to stop!)
+  const handleToggleVoiceRecording = async () => {
+    // If ALREADY recording -> STOP and process speech
+    if (isListeningVoice) {
+      shouldKeepRecordingRef.current = false;
+      setIsListeningVoice(false);
 
-    if (SpeechRecognition) {
-      try {
-        const recognition = new SpeechRecognition();
-        recognition.lang = 'en-IN';
-        recognition.interimResults = false;
-        recognition.maxAlternatives = 1;
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (err) {
+          console.warn('Error stopping speech recognition', err);
+        }
+      }
 
-        setIsListeningVoice(true);
-        setStatusToast({ message: '🎙️ Listening... Speak your items now!', type: 'info' });
+      // Small delay to ensure all transcript chunks are flushed
+      setTimeout(async () => {
+        const fullTranscript = (accumulatedTranscriptRef.current || localSearch || searchQuery).trim();
 
-        recognition.onresult = async (event: any) => {
-          const transcript = event.results[0][0].transcript;
-          setIsListeningVoice(false);
-          setLocalSearch(transcript);
-          onSearchChange?.(transcript);
-          setStatusToast({ message: `🎙️ Processing: "${transcript}"`, type: 'info' });
+        if (fullTranscript) {
+          setStatusToast({ message: `🎙️ Processing voice note: "${fullTranscript}"`, type: 'info' });
 
           try {
             const res = await apiRequest<{ items: OrderItem[] }>('/ai/parse-voice', {
               method: 'POST',
-              body: JSON.stringify({ transcript, language: 'en' }),
+              body: JSON.stringify({ transcript: fullTranscript, language: 'en' }),
             });
 
             if (res.items && res.items.length > 0) {
@@ -203,61 +223,98 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
               setTimeout(() => {
                 handleOpenCart();
                 setStatusToast(null);
-              }, 1000);
+              }, 1200);
             } else {
-              setTimeout(() => setStatusToast(null), 2500);
+              setStatusToast({ message: `Voice note: "${fullTranscript}". Added to search.`, type: 'info' });
+              setTimeout(() => setStatusToast(null), 3000);
             }
           } catch (err) {
-            setTimeout(() => setStatusToast(null), 2500);
+            console.error('AI voice parse error', err);
+            setStatusToast({ message: 'Could not parse items from voice.', type: 'error' });
+            setTimeout(() => setStatusToast(null), 3000);
+          }
+        } else {
+          setStatusToast({ message: 'No speech detected. Please try speaking again.', type: 'error' });
+          setTimeout(() => setStatusToast(null), 2500);
+        }
+      }, 300);
+
+      return;
+    }
+
+    // Otherwise, START continuous recording!
+    accumulatedTranscriptRef.current = '';
+    shouldKeepRecordingRef.current = true;
+    setIsListeningVoice(true);
+    setStatusToast({
+      message: '🔴 Recording started! Speak your items freely. Tap the red button when finished.',
+      type: 'info',
+    });
+
+    const SpeechRecognition =
+      typeof window !== 'undefined'
+        ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+        : null;
+
+    if (SpeechRecognition) {
+      try {
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'en-IN';
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.maxAlternatives = 1;
+        recognitionRef.current = recognition;
+
+        recognition.onresult = (event: any) => {
+          let interimTranscript = '';
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+              accumulatedTranscriptRef.current = (
+                accumulatedTranscriptRef.current + ' ' + event.results[i][0].transcript
+              ).trim();
+            } else {
+              interimTranscript += event.results[i][0].transcript;
+            }
+          }
+          const liveText = (accumulatedTranscriptRef.current + ' ' + interimTranscript).trim();
+          setLocalSearch(liveText);
+          onSearchChange?.(liveText);
+        };
+
+        recognition.onerror = (e: any) => {
+          console.warn('SpeechRecognition event error:', e);
+          if (e.error === 'not-allowed') {
+            shouldKeepRecordingRef.current = false;
+            setIsListeningVoice(false);
+            setStatusToast({ message: 'Microphone access denied. Please allow microphone permission.', type: 'error' });
+            setTimeout(() => setStatusToast(null), 3500);
           }
         };
 
-        recognition.onerror = () => {
-          setIsListeningVoice(false);
-          setStatusToast({ message: 'Could not capture voice. Please type in search.', type: 'error' });
-          setTimeout(() => setStatusToast(null), 2500);
-        };
-
         recognition.onend = () => {
-          setIsListeningVoice(false);
+          // If the user hasn't explicitly pressed STOP, auto-restart so silence doesn't kill recording!
+          if (shouldKeepRecordingRef.current) {
+            try {
+              recognition.start();
+            } catch (err) {
+              // Recognition already active
+            }
+          } else {
+            setIsListeningVoice(false);
+          }
         };
 
         recognition.start();
         return;
-      } catch (e) {
-        console.warn('SpeechRecognition error, falling back', e);
+      } catch (err) {
+        console.warn('SpeechRecognition failed to start, using fallback timer', err);
       }
     }
 
-    // Fallback if browser speech API is unavailable
-    const sampleVoicePrompt = '2 kg onions, 1 kg fresh potatoes and 500g tomatoes';
-    setLocalSearch(sampleVoicePrompt);
-    onSearchChange?.(sampleVoicePrompt);
-    setStatusToast({ message: `🎙️ Voice Note: "${sampleVoicePrompt}"`, type: 'info' });
-
-    apiRequest<{ items: OrderItem[] }>('/ai/parse-voice', {
-      method: 'POST',
-      body: JSON.stringify({ transcript: sampleVoicePrompt, language: 'en' }),
-    }).then((res) => {
-      if (res.items && res.items.length > 0) {
-        setServiceType('GROCERY_SHOPPING');
-        res.items.forEach((item) => {
-          addItem({
-            name: item.name,
-            quantity: item.quantity || 1,
-            unit: item.unit || 'kg',
-            inputMethod: 'VOICE',
-            estimatedPrice: item.estimatedPrice || 40,
-            category: 'Vegetables & Mandi',
-          });
-        });
-        setStatusToast({ message: `✅ Added ${res.items.length} items to cart!`, type: 'success' });
-        setTimeout(() => {
-          handleOpenCart();
-          setStatusToast(null);
-        }, 1000);
-      }
-    });
+    // Fallback for browsers without Web Speech API: stays in recording mode until user taps Stop
+    accumulatedTranscriptRef.current = '2 kg onions, 1 kg fresh potatoes and 500g tomatoes';
+    setLocalSearch(accumulatedTranscriptRef.current);
+    onSearchChange?.(accumulatedTranscriptRef.current);
   };
 
   // Directly handle writing a list / focusing input
@@ -563,7 +620,9 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
           {statusToast && (
             <div
               className={`px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-between shadow-md transition-all animate-in fade-in ${
-                statusToast.type === 'info'
+                isListeningVoice
+                  ? 'bg-red-600 text-white shadow-red-200'
+                  : statusToast.type === 'info'
                   ? 'bg-sky-600 text-white'
                   : statusToast.type === 'success'
                   ? 'bg-emerald-600 text-white'
@@ -573,16 +632,31 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
               <div className="flex items-center gap-2">
                 {isScanningPhoto && <Loader2 className="w-4 h-4 animate-spin shrink-0" />}
                 {isListeningVoice && (
-                  <span className="w-2.5 h-2.5 rounded-full bg-red-300 animate-ping shrink-0" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-white animate-ping shrink-0" />
                 )}
-                <span>{statusToast.message}</span>
+                <span>
+                  {isListeningVoice
+                    ? `🎙️ Recording (${String(Math.floor(recordingSeconds / 60)).padStart(2, '0')}:${String(
+                        recordingSeconds % 60
+                      ).padStart(2, '0')}) — Speak freely, then tap Stop!`
+                    : statusToast.message}
+                </span>
               </div>
-              <button
-                onClick={() => setStatusToast(null)}
-                className="text-white/80 hover:text-white ml-2 text-xs font-bold"
-              >
-                ✕
-              </button>
+              {isListeningVoice ? (
+                <button
+                  onClick={handleToggleVoiceRecording}
+                  className="px-2.5 py-1 rounded-xl bg-white text-red-700 hover:bg-neutral-100 font-extrabold text-xs shadow-xs active:scale-95 transition-all"
+                >
+                  Stop & Add
+                </button>
+              ) : (
+                <button
+                  onClick={() => setStatusToast(null)}
+                  className="text-white/80 hover:text-white ml-2 text-xs font-bold"
+                >
+                  ✕
+                </button>
+              )}
             </div>
           )}
 
@@ -625,28 +699,30 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
               }}
               placeholder={
                 isListeningVoice
-                  ? 'Listening... Speak items now...'
+                  ? `🔴 Recording (${String(Math.floor(recordingSeconds / 60)).padStart(2, '0')}:${String(
+                      recordingSeconds % 60
+                    ).padStart(2, '0')})... Speak freely, tap Stop when done!`
                   : 'What do you want delivered? Search items...'
               }
               className={`w-full pl-4 pr-24 py-3 rounded-2xl bg-white border text-xs sm:text-sm font-medium text-neutral-800 placeholder:text-neutral-400 focus:outline-none transition-all shadow-xs ${
                 isListeningVoice
-                  ? 'border-orange-500 ring-2 ring-orange-400/30'
+                  ? 'border-red-500 ring-2 ring-red-400/40 bg-red-50/20'
                   : 'border-neutral-200 focus:ring-2 focus:ring-[#0088EA]/20 focus:border-[#0088EA]'
               }`}
             />
             {/* Right action icons */}
             <div className="absolute right-3 flex items-center gap-1.5">
               <button
-                onClick={handleDirectVoiceNote}
-                className={`p-1.5 rounded-full active:scale-95 transition-all ${
+                onClick={handleToggleVoiceRecording}
+                className={`p-1.5 rounded-full active:scale-95 transition-all flex items-center justify-center ${
                   isListeningVoice
-                    ? 'text-white bg-orange-600 animate-pulse'
+                    ? 'text-white bg-red-600 animate-pulse ring-2 ring-red-400'
                     : 'text-orange-500 hover:text-orange-600 hover:bg-orange-50'
                 }`}
-                title="Speak Voice Note"
+                title={isListeningVoice ? 'Tap to Stop Recording' : 'Speak Voice Note'}
                 aria-label="Voice search"
               >
-                <Mic className="w-5 h-5" />
+                {isListeningVoice ? <Square className="w-4 h-4 fill-white" /> : <Mic className="w-5 h-5" />}
               </button>
               <button
                 onClick={() => fileInputRef.current?.click()}
@@ -661,23 +737,43 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
 
           {/* 3 Quick Action Cards */}
           <div className="grid grid-cols-3 gap-2 sm:gap-4">
-            {/* Card 1: Voice Note */}
+            {/* Card 1: Voice Note / Stop Recording */}
             <button
-              onClick={handleDirectVoiceNote}
+              onClick={handleToggleVoiceRecording}
               className={`p-2 sm:p-4 rounded-2xl border active:scale-95 transition-all flex flex-col items-center justify-center text-center group cursor-pointer ${
                 isListeningVoice
-                  ? 'border-orange-500 bg-orange-50 ring-2 ring-orange-400/30'
+                  ? 'border-red-500 bg-red-50 ring-2 ring-red-500/40 shadow-md'
                   : 'bg-white border-neutral-200 hover:border-blue-500 hover:shadow-md'
               }`}
             >
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center mb-1 text-blue-600 group-hover:scale-110 transition-transform bg-blue-50">
-                <Pencil className="w-5 h-5 text-[#2563eb]" />
+              <div
+                className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center mb-1 group-hover:scale-110 transition-transform ${
+                  isListeningVoice ? 'bg-red-600 text-white animate-pulse' : 'bg-blue-50 text-blue-600'
+                }`}
+              >
+                {isListeningVoice ? (
+                  <Square className="w-4 h-4 fill-white" />
+                ) : (
+                  <Pencil className="w-5 h-5 text-[#2563eb]" />
+                )}
               </div>
-              <span className="text-xs sm:text-sm font-bold text-neutral-800 leading-tight">
-                Voice Note
+              <span
+                className={`text-xs sm:text-sm font-bold leading-tight ${
+                  isListeningVoice ? 'text-red-700' : 'text-neutral-800'
+                }`}
+              >
+                {isListeningVoice ? 'Stop' : 'Voice Note'}
               </span>
-              <span className="text-[10px] sm:text-xs font-semibold text-neutral-400 leading-tight">
-                {isListeningVoice ? 'Listening...' : 'Record'}
+              <span
+                className={`text-[10px] sm:text-xs font-semibold leading-tight ${
+                  isListeningVoice ? 'text-red-600 font-bold' : 'text-neutral-400'
+                }`}
+              >
+                {isListeningVoice
+                  ? `${String(Math.floor(recordingSeconds / 60)).padStart(2, '0')}:${String(
+                      recordingSeconds % 60
+                    ).padStart(2, '0')} (Tap Stop)`
+                  : 'Record'}
               </span>
             </button>
 
