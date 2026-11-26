@@ -180,7 +180,10 @@ export const AIHybridOrderAssistant: React.FC<AIHybridOrderAssistantProps> = ({
   useEffect(() => {
     if (initialTab && isOpen) {
       if (initialTab === 'voice') setSelectedQuickCard('voice');
-      else if (initialTab === 'image') setSelectedQuickCard('handwritten');
+      else if (initialTab === 'image') {
+        setSelectedQuickCard('upload');
+        setTimeout(() => fileInputRef.current?.click(), 150);
+      }
       else if (initialTab === 'manual') setSelectedQuickCard(null);
     }
   }, [initialTab, isOpen]);
@@ -714,7 +717,8 @@ export const AIHybridOrderAssistant: React.FC<AIHybridOrderAssistantProps> = ({
                   <button
                     type="button"
                     onClick={() => {
-                      setSelectedQuickCard(selectedQuickCard === 'handwritten' ? null : 'handwritten');
+                      setSelectedQuickCard('upload');
+                      fileInputRef.current?.click();
                     }}
                     className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-center gap-1.5 ${
                       selectedQuickCard === 'handwritten'

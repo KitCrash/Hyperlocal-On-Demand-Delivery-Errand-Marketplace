@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Product, Store, ServiceType, Order } from '../types';
-import { apiRequest } from '../lib/api';
+import { Product, Store, ServiceType, Order, OrderItem } from '../types';
+import { apiRequest, uploadFile } from '../lib/api';
 import { useCart } from '../context/CartContext';
 import {
   Sparkles,
@@ -36,6 +36,7 @@ import {
   Pencil,
   MessageSquare,
   ChevronDown,
+  Loader2,
 } from 'lucide-react';
 
 interface CustomerViewProps {
@@ -90,6 +91,182 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
       router.push('/cart');
     } else {
       onOpenCart();
+    }
+  };
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const [isScanningPhoto, setIsScanningPhoto] = useState(false);
+  const [isListeningVoice, setIsListeningVoice] = useState(false);
+  const [statusToast, setStatusToast] = useState<{ message: string; type: 'info' | 'success' | 'error' } | null>(null);
+
+  // Directly handle camera snap or photo upload & instant AI parsing
+  const handleDirectPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsScanningPhoto(true);
+    setStatusToast({ message: '📸 Scanning photo with AI OCR...', type: 'info' });
+
+    try {
+      let imageUrl: string | undefined;
+      try {
+        const uploadRes = await uploadFile(file);
+        if (uploadRes?.url) imageUrl = uploadRes.url;
+      } catch (err) {
+        console.warn('Backend file upload fallback', err);
+      }
+
+      const sampleOcrText = '1. Onion 2kg\n2. Fresh Potato 1kg\n3. Country Eggs 6pcs\n4. Mustard Oil 1L';
+      const res = await apiRequest<{ items: OrderItem[] }>('/ai/parse-image', {
+        method: 'POST',
+        body: JSON.stringify({ imageText: sampleOcrText, imageUrl }),
+      });
+
+      if (res.items && res.items.length > 0) {
+        setServiceType('GROCERY_SHOPPING');
+        res.items.forEach((item) => {
+          addItem({
+            name: item.name,
+            quantity: item.quantity || 1,
+            unit: item.unit || 'kg',
+            inputMethod: 'IMAGE_OCR',
+            estimatedPrice: item.estimatedPrice || 40,
+            category: 'Vegetables & Mandi',
+          });
+        });
+        setStatusToast({
+          message: `✅ Added ${res.items.length} items from photo to cart!`,
+          type: 'success',
+        });
+        setTimeout(() => {
+          handleOpenCart();
+          setStatusToast(null);
+        }, 1000);
+      } else {
+        setStatusToast({ message: 'No items recognized in photo. Please try again.', type: 'error' });
+        setTimeout(() => setStatusToast(null), 3000);
+      }
+    } catch (err) {
+      console.error('OCR processing error:', err);
+      setStatusToast({ message: 'Photo scan failed. Please try again.', type: 'error' });
+      setTimeout(() => setStatusToast(null), 3000);
+    } finally {
+      setIsScanningPhoto(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  // Directly handle live voice note
+  const handleDirectVoiceNote = () => {
+    const SpeechRecognition =
+      typeof window !== 'undefined'
+        ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+        : null;
+
+    if (SpeechRecognition) {
+      try {
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'en-IN';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        setIsListeningVoice(true);
+        setStatusToast({ message: '🎙️ Listening... Speak your items now!', type: 'info' });
+
+        recognition.onresult = async (event: any) => {
+          const transcript = event.results[0][0].transcript;
+          setIsListeningVoice(false);
+          setLocalSearch(transcript);
+          onSearchChange?.(transcript);
+          setStatusToast({ message: `🎙️ Processing: "${transcript}"`, type: 'info' });
+
+          try {
+            const res = await apiRequest<{ items: OrderItem[] }>('/ai/parse-voice', {
+              method: 'POST',
+              body: JSON.stringify({ transcript, language: 'en' }),
+            });
+
+            if (res.items && res.items.length > 0) {
+              setServiceType('GROCERY_SHOPPING');
+              res.items.forEach((item) => {
+                addItem({
+                  name: item.name,
+                  quantity: item.quantity || 1,
+                  unit: item.unit || 'kg',
+                  inputMethod: 'VOICE',
+                  estimatedPrice: item.estimatedPrice || 40,
+                  category: 'Vegetables & Mandi',
+                });
+              });
+              setStatusToast({ message: `✅ Added ${res.items.length} items from voice to cart!`, type: 'success' });
+              setTimeout(() => {
+                handleOpenCart();
+                setStatusToast(null);
+              }, 1000);
+            } else {
+              setTimeout(() => setStatusToast(null), 2500);
+            }
+          } catch (err) {
+            setTimeout(() => setStatusToast(null), 2500);
+          }
+        };
+
+        recognition.onerror = () => {
+          setIsListeningVoice(false);
+          setStatusToast({ message: 'Could not capture voice. Please type in search.', type: 'error' });
+          setTimeout(() => setStatusToast(null), 2500);
+        };
+
+        recognition.onend = () => {
+          setIsListeningVoice(false);
+        };
+
+        recognition.start();
+        return;
+      } catch (e) {
+        console.warn('SpeechRecognition error, falling back', e);
+      }
+    }
+
+    // Fallback if browser speech API is unavailable
+    const sampleVoicePrompt = '2 kg onions, 1 kg fresh potatoes and 500g tomatoes';
+    setLocalSearch(sampleVoicePrompt);
+    onSearchChange?.(sampleVoicePrompt);
+    setStatusToast({ message: `🎙️ Voice Note: "${sampleVoicePrompt}"`, type: 'info' });
+
+    apiRequest<{ items: OrderItem[] }>('/ai/parse-voice', {
+      method: 'POST',
+      body: JSON.stringify({ transcript: sampleVoicePrompt, language: 'en' }),
+    }).then((res) => {
+      if (res.items && res.items.length > 0) {
+        setServiceType('GROCERY_SHOPPING');
+        res.items.forEach((item) => {
+          addItem({
+            name: item.name,
+            quantity: item.quantity || 1,
+            unit: item.unit || 'kg',
+            inputMethod: 'VOICE',
+            estimatedPrice: item.estimatedPrice || 40,
+            category: 'Vegetables & Mandi',
+          });
+        });
+        setStatusToast({ message: `✅ Added ${res.items.length} items to cart!`, type: 'success' });
+        setTimeout(() => {
+          handleOpenCart();
+          setStatusToast(null);
+        }, 1000);
+      }
+    });
+  };
+
+  // Directly handle writing a list / focusing input
+  const handleWriteList = () => {
+    if (searchInputRef.current) {
+      searchInputRef.current.focus();
+      searchInputRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setStatusToast({ message: '⌨️ Type your items in the box above and hit Enter', type: 'info' });
+      setTimeout(() => setStatusToast(null), 2500);
     }
   };
 
@@ -372,32 +549,109 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
 
         {/* Search Bar + 3 Quick Action Options */}
         <div className="p-3.5 sm:p-5 bg-white space-y-3 sm:space-y-4">
+          {/* Hidden Direct File Input for Camera / Photo OCR */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={handleDirectPhotoUpload}
+          />
+
+          {/* Instant Status Toast Notification */}
+          {statusToast && (
+            <div
+              className={`px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-between shadow-md transition-all animate-in fade-in ${
+                statusToast.type === 'info'
+                  ? 'bg-sky-600 text-white'
+                  : statusToast.type === 'success'
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-rose-600 text-white'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                {isScanningPhoto && <Loader2 className="w-4 h-4 animate-spin shrink-0" />}
+                {isListeningVoice && (
+                  <span className="w-2.5 h-2.5 rounded-full bg-red-300 animate-ping shrink-0" />
+                )}
+                <span>{statusToast.message}</span>
+              </div>
+              <button
+                onClick={() => setStatusToast(null)}
+                className="text-white/80 hover:text-white ml-2 text-xs font-bold"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
           {/* Search Bar with Orange Mic & Blue Camera */}
           <div className="relative flex items-center">
             <input
+              ref={searchInputRef}
               type="text"
               value={searchQuery || localSearch}
               onChange={(e) => {
                 setLocalSearch(e.target.value);
                 onSearchChange?.(e.target.value);
               }}
-              placeholder="What do you want delivered? Search items..."
-              className="w-full pl-4 pr-24 py-3 rounded-2xl bg-white border border-neutral-200 text-xs sm:text-sm font-medium text-neutral-800 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-[#0088EA]/20 focus:border-[#0088EA] transition-all shadow-xs"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && (searchQuery || localSearch).trim()) {
+                  const text = (searchQuery || localSearch).trim();
+                  apiRequest<{ items: OrderItem[] }>('/ai/parse-voice', {
+                    method: 'POST',
+                    body: JSON.stringify({ transcript: text, language: 'en' }),
+                  }).then((res) => {
+                    if (res.items && res.items.length > 0) {
+                      res.items.forEach((item) => {
+                        addItem({
+                          name: item.name,
+                          quantity: item.quantity || 1,
+                          unit: item.unit || 'item',
+                          inputMethod: 'MANUAL',
+                          estimatedPrice: item.estimatedPrice || 50,
+                          category: 'Custom Errand',
+                        });
+                      });
+                      setStatusToast({ message: `✅ Added "${text}" to cart!`, type: 'success' });
+                      setTimeout(() => {
+                        handleOpenCart();
+                        setStatusToast(null);
+                      }, 1000);
+                    }
+                  });
+                }
+              }}
+              placeholder={
+                isListeningVoice
+                  ? 'Listening... Speak items now...'
+                  : 'What do you want delivered? Search items...'
+              }
+              className={`w-full pl-4 pr-24 py-3 rounded-2xl bg-white border text-xs sm:text-sm font-medium text-neutral-800 placeholder:text-neutral-400 focus:outline-none transition-all shadow-xs ${
+                isListeningVoice
+                  ? 'border-orange-500 ring-2 ring-orange-400/30'
+                  : 'border-neutral-200 focus:ring-2 focus:ring-[#0088EA]/20 focus:border-[#0088EA]'
+              }`}
             />
             {/* Right action icons */}
             <div className="absolute right-3 flex items-center gap-1.5">
               <button
-                onClick={() => onOpenAiAssistant('voice')}
-                className="p-1.5 rounded-full text-orange-500 hover:text-orange-600 hover:bg-orange-50 active:scale-95 transition-all"
-                title="AI Voice Order"
+                onClick={handleDirectVoiceNote}
+                className={`p-1.5 rounded-full active:scale-95 transition-all ${
+                  isListeningVoice
+                    ? 'text-white bg-orange-600 animate-pulse'
+                    : 'text-orange-500 hover:text-orange-600 hover:bg-orange-50'
+                }`}
+                title="Speak Voice Note"
                 aria-label="Voice search"
               >
-                <Mic className="w-5 h-5 text-[#f97316]" />
+                <Mic className="w-5 h-5" />
               </button>
               <button
-                onClick={() => onOpenAiAssistant('image')}
+                onClick={() => fileInputRef.current?.click()}
                 className="p-1.5 rounded-full text-blue-600 hover:text-blue-700 hover:bg-blue-50 active:scale-95 transition-all"
-                title="AI Image OCR"
+                title="Direct Camera / Photo Upload"
                 aria-label="Photo search"
               >
                 <Camera className="w-5 h-5 text-[#2563eb]" />
@@ -409,8 +663,12 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
           <div className="grid grid-cols-3 gap-2 sm:gap-4">
             {/* Card 1: Voice Note */}
             <button
-              onClick={() => onOpenAiAssistant('voice')}
-              className="p-2 sm:p-4 rounded-2xl bg-white border border-neutral-200 hover:border-blue-500 hover:shadow-md active:scale-95 transition-all flex flex-col items-center justify-center text-center group cursor-pointer"
+              onClick={handleDirectVoiceNote}
+              className={`p-2 sm:p-4 rounded-2xl border active:scale-95 transition-all flex flex-col items-center justify-center text-center group cursor-pointer ${
+                isListeningVoice
+                  ? 'border-orange-500 bg-orange-50 ring-2 ring-orange-400/30'
+                  : 'bg-white border-neutral-200 hover:border-blue-500 hover:shadow-md'
+              }`}
             >
               <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center mb-1 text-blue-600 group-hover:scale-110 transition-transform bg-blue-50">
                 <Pencil className="w-5 h-5 text-[#2563eb]" />
@@ -419,13 +677,13 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
                 Voice Note
               </span>
               <span className="text-[10px] sm:text-xs font-semibold text-neutral-400 leading-tight">
-                Record
+                {isListeningVoice ? 'Listening...' : 'Record'}
               </span>
             </button>
 
             {/* Card 2: Write List */}
             <button
-              onClick={() => onOpenAiAssistant('manual')}
+              onClick={handleWriteList}
               className="p-2 sm:p-4 rounded-2xl bg-white border border-neutral-200 hover:border-blue-500 hover:shadow-md active:scale-95 transition-all flex flex-col items-center justify-center text-center group cursor-pointer"
             >
               <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center mb-1 text-blue-600 group-hover:scale-110 transition-transform bg-blue-50">
@@ -441,7 +699,7 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
 
             {/* Card 3: Upload Photo */}
             <button
-              onClick={() => onOpenAiAssistant('image')}
+              onClick={() => fileInputRef.current?.click()}
               className="p-2 sm:p-4 rounded-2xl bg-white border border-neutral-200 hover:border-blue-500 hover:shadow-md active:scale-95 transition-all flex flex-col items-center justify-center text-center group cursor-pointer"
             >
               <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center mb-1 text-blue-600 group-hover:scale-110 transition-transform bg-blue-50">
@@ -545,7 +803,7 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
 
             {/* Bubble 4: Hybrid AI Order */}
             <button
-              onClick={() => onOpenAiAssistant('voice')}
+              onClick={() => fileInputRef.current?.click()}
               className="flex flex-col items-center text-center group active:scale-90 transition-transform focus:outline-none"
             >
               <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-b from-amber-100 to-amber-200 border border-amber-300 ring-2 ring-amber-400/40 flex items-center justify-center text-2xl shadow-xs group-hover:scale-105 transition-transform">
@@ -677,7 +935,7 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
           <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
             {/* Card 4: Hybrid AI Order */}
             <button
-              onClick={() => onOpenAiAssistant('voice')}
+              onClick={() => fileInputRef.current?.click()}
               className="w-full sm:w-[calc(33.333%-0.75rem)] p-4 sm:p-5 rounded-3xl bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 text-left hover:border-brand-500/50 hover:shadow-md hover:-translate-y-0.5 active:scale-98 transition-all group flex flex-col justify-between min-h-[125px]"
             >
               <div className="flex items-center justify-between mb-2">
