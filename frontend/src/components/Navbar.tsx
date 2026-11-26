@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import {
@@ -39,6 +40,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   searchQuery = '',
   onSearchChange,
 }) => {
+  const router = useRouter();
   const { user, switchRole } = useAuth();
   const { items } = useCart();
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -252,7 +254,13 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Cart Button */}
             {onOpenCart && (
               <button
-                onClick={onOpenCart}
+                onClick={() => {
+                  if (typeof window !== 'undefined' && window.innerWidth < 768) {
+                    router.push('/cart');
+                  } else {
+                    onOpenCart();
+                  }
+                }}
                 className="p-2 sm:p-2.5 rounded-full bg-white border border-[#E4DDD3] text-neutral-800 hover:bg-neutral-50 shadow-sm relative transition-all"
                 title="View Cart / Checkout"
                 aria-label="Cart"

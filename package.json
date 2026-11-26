@@ -1,0 +1,12 @@
+{
+  "name": "hyperlocal-marketplace",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Hyperlocal On-Demand Delivery & Errand Marketplace",
+  "scripts": {
+    "dev:backend": "cd backend && node ./node_modules/tsx/dist/cli.mjs watch src/server.ts",
+    "dev:frontend": "cd frontend && node ./node_modules/next/dist/bin/next dev -p 3000",
+    "dev": "start-all.bat",
+    "start": "start-all.bat"
+  }
+}

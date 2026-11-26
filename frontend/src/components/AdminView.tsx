@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Order, Transaction, Complaint, User } from '../types';
+import { Order, Transaction, Complaint, User, Advertisement } from '../types';
 import { apiRequest } from '../lib/api';
 import {
   ShieldCheck,
@@ -19,40 +19,108 @@ import {
   Search,
   SlidersHorizontal,
   FileText,
+  Plus,
+  Trash2,
+  ExternalLink,
 } from 'lucide-react';
 
 export const AdminView: React.FC = () => {
-  const [activeAdminTab, setActiveAdminTab] = useState<'metrics' | 'orders' | 'priceAlerts' | 'ledger' | 'partners' | 'complaints'>('metrics');
+  const [activeAdminTab, setActiveAdminTab] = useState<'metrics' | 'orders' | 'priceAlerts' | 'ledger' | 'partners' | 'complaints' | 'ads'>('metrics');
   const [overview, setOverview] = useState<any>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [priceAlerts, setPriceAlerts] = useState<Order[]>([]);
   const [ledger, setLedger] = useState<any>(null);
   const [partners, setPartners] = useState<any[]>([]);
   const [complaints, setComplaints] = useState<Complaint[]>([]);
+  const [advertisements, setAdvertisements] = useState<Advertisement[]>([]);
   const [selectedProofUrl, setSelectedProofUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // New Ad form state
+  const [newAdTitle, setNewAdTitle] = useState('');
+  const [newAdDesc, setNewAdDesc] = useState('');
+  const [newAdImage, setNewAdImage] = useState('');
+  const [newAdLink, setNewAdLink] = useState('');
+  const [newAdBadge, setNewAdBadge] = useState('');
+  const [newAdCategory, setNewAdCategory] = useState<'FURNITURE' | 'HOUSEHOLD' | 'LOCAL_SHOP' | 'PROMOTION'>('LOCAL_SHOP');
+  const [newAdType, setNewAdType] = useState<'BANNER' | 'COMPACT'>('BANNER');
+  const [isCreatingAd, setIsCreatingAd] = useState(false);
+
   const fetchAdminData = async () => {
     try {
-      const [ovRes, ordRes, alertRes, ledgRes, partRes, compRes] = await Promise.all([
-        apiRequest('/admin/overview'),
-        apiRequest('/orders'),
-        apiRequest('/admin/price-alerts'),
-        apiRequest('/admin/financial-ledger'),
-        apiRequest('/admin/partners'),
-        apiRequest('/admin/complaints'),
+      const [ovRes, ordRes, alertRes, ledgRes, partRes, compRes, adsRes] = await Promise.all([
+        apiRequest('/admin/overview').catch(() => null),
+        apiRequest('/orders').catch(() => ({ orders: [] })),
+        apiRequest('/admin/price-alerts').catch(() => ({ alerts: [] })),
+        apiRequest('/admin/financial-ledger').catch(() => null),
+        apiRequest('/admin/partners').catch(() => ({ partners: [] })),
+        apiRequest('/admin/complaints').catch(() => ({ complaints: [] })),
+        apiRequest('/advertisements?all=true').catch(() => ({ advertisements: [] })),
       ]);
 
-      setOverview(ovRes);
+      if (ovRes) setOverview(ovRes);
       setOrders(ordRes.orders || []);
       setPriceAlerts(alertRes.alerts || []);
-      setLedger(ledgRes);
+      if (ledgRes) setLedger(ledgRes);
       setPartners(partRes.partners || []);
       setComplaints(compRes.complaints || []);
+      setAdvertisements(adsRes.advertisements || []);
     } catch (err) {
       console.error('Failed to fetch admin data', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCreateAd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newAdTitle || !newAdDesc) return;
+    setIsCreatingAd(true);
+    try {
+      await apiRequest('/advertisements', {
+        method: 'POST',
+        body: JSON.stringify({
+          title: newAdTitle,
+          description: newAdDesc,
+          imageUrl: newAdImage || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800',
+          linkUrl: newAdLink || '#',
+          badge: newAdBadge || '⭐ Local Promotion',
+          category: newAdCategory,
+          type: newAdType,
+        }),
+      });
+      setNewAdTitle('');
+      setNewAdDesc('');
+      setNewAdImage('');
+      setNewAdLink('');
+      setNewAdBadge('');
+      fetchAdminData();
+    } catch (err) {
+      console.error('Failed to create ad', err);
+    } finally {
+      setIsCreatingAd(false);
+    }
+  };
+
+  const handleToggleAd = async (id: string) => {
+    try {
+      await apiRequest(`/advertisements/${id}/toggle`, {
+        method: 'PATCH',
+      });
+      fetchAdminData();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteAd = async (id: string) => {
+    try {
+      await apiRequest(`/advertisements/${id}`, {
+        method: 'DELETE',
+      });
+      fetchAdminData();
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -140,6 +208,7 @@ export const AdminView: React.FC = () => {
           { id: 'ledger', label: 'Financial Ledger' },
           { id: 'partners', label: `Partners (${partners.length})` },
           { id: 'complaints', label: `Disputes (${complaints.length})` },
+          { id: 'ads', label: `Advertisements (${advertisements.length})` },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -516,6 +585,206 @@ export const AdminView: React.FC = () => {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* TAB 7: ADVERTISEMENTS MANAGEMENT */}
+      {activeAdminTab === 'ads' && (
+        <div className="space-y-6">
+          {/* Create New Advertisement Form */}
+          <div className="p-5 sm:p-6 rounded-3xl bg-white border border-[#E8E1D7] shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div>
+                <h3 className="text-sm sm:text-base font-black text-neutral-900">
+                  Create Local Marketplace Advertisement
+                </h3>
+                <p className="text-xs text-neutral-500">
+                  Promote local shops, furniture offers, and household utility services on the Hybrid AI Order page.
+                </p>
+              </div>
+              <span className="bg-purple-100 text-purple-800 text-[10px] font-black px-2.5 py-1 rounded-full uppercase">
+                Dynamic Ads
+              </span>
+            </div>
+
+            <form onSubmit={handleCreateAd} className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-bold text-neutral-600 block mb-1">Ad Title</label>
+                  <input
+                    type="text"
+                    value={newAdTitle}
+                    onChange={(e) => setNewAdTitle(e.target.value)}
+                    placeholder="e.g. Royal Heritage Teak Wood Furniture"
+                    className="w-full px-3 py-2 rounded-xl border border-neutral-200 text-xs font-semibold focus:outline-none focus:border-purple-600"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-neutral-600 block mb-1">Promotional Badge Tag</label>
+                  <input
+                    type="text"
+                    value={newAdBadge}
+                    onChange={(e) => setNewAdBadge(e.target.value)}
+                    placeholder="e.g. 🛋️ Festive Furniture Offer"
+                    className="w-full px-3 py-2 rounded-xl border border-neutral-200 text-xs font-semibold focus:outline-none focus:border-purple-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-neutral-600 block mb-1">Category</label>
+                  <select
+                    value={newAdCategory}
+                    onChange={(e: any) => setNewAdCategory(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-neutral-200 text-xs font-semibold focus:outline-none focus:border-purple-600 bg-white"
+                  >
+                    <option value="FURNITURE">FURNITURE</option>
+                    <option value="HOUSEHOLD">HOUSEHOLD</option>
+                    <option value="LOCAL_SHOP">LOCAL_SHOP</option>
+                    <option value="PROMOTION">PROMOTION</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-neutral-600 block mb-1">Placement Type</label>
+                  <select
+                    value={newAdType}
+                    onChange={(e: any) => setNewAdType(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-neutral-200 text-xs font-semibold focus:outline-none focus:border-purple-600 bg-white"
+                  >
+                    <option value="BANNER">BANNER (Promotional Banner Below Input)</option>
+                    <option value="COMPACT">COMPACT (4-Corner Compact Placement)</option>
+                  </select>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="text-[11px] font-bold text-neutral-600 block mb-1">Short Description</label>
+                  <input
+                    type="text"
+                    value={newAdDesc}
+                    onChange={(e) => setNewAdDesc(e.target.value)}
+                    placeholder="e.g. Flat 35% Off on handmade wooden dining sets, coffee tables, and study desks."
+                    className="w-full px-3 py-2 rounded-xl border border-neutral-200 text-xs font-semibold focus:outline-none focus:border-purple-600"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-neutral-600 block mb-1">Image URL</label>
+                  <input
+                    type="url"
+                    value={newAdImage}
+                    onChange={(e) => setNewAdImage(e.target.value)}
+                    placeholder="https://images.unsplash.com/..."
+                    className="w-full px-3 py-2 rounded-xl border border-neutral-200 text-xs font-semibold focus:outline-none focus:border-purple-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-neutral-600 block mb-1">Clickable Action Link</label>
+                  <input
+                    type="text"
+                    value={newAdLink}
+                    onChange={(e) => setNewAdLink(e.target.value)}
+                    placeholder="https://example.com/..."
+                    className="w-full px-3 py-2 rounded-xl border border-neutral-200 text-xs font-semibold focus:outline-none focus:border-purple-600"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-2">
+                <button
+                  type="submit"
+                  disabled={isCreatingAd}
+                  className="py-2.5 px-5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-extrabold flex items-center gap-1.5 shadow-sm transition-all"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>{isCreatingAd ? 'Publishing...' : 'Publish Advertisement'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Advertisements List */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-extrabold uppercase tracking-wider text-neutral-400">
+              Live Advertisements ({advertisements.length})
+            </h4>
+
+            {advertisements.length === 0 ? (
+              <div className="p-8 text-center text-xs text-neutral-500 bg-white rounded-3xl border">
+                No advertisements created yet. Use the form above to publish local promotions.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {advertisements.map((ad) => (
+                  <div
+                    key={ad.id}
+                    className="p-4 rounded-3xl bg-white border border-[#E8E1D7] shadow-sm flex flex-col justify-between space-y-3"
+                  >
+                    <div className="flex gap-3">
+                      <img
+                        src={ad.imageUrl}
+                        alt={ad.title}
+                        className="w-20 h-20 rounded-2xl object-cover border border-neutral-200 shrink-0"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-purple-50 text-purple-800">
+                            {ad.type}
+                          </span>
+                          <span className="text-[10px] text-neutral-500 font-bold">
+                            {ad.category}
+                          </span>
+                        </div>
+                        <h5 className="text-xs font-black text-neutral-900 mt-1 truncate">
+                          {ad.title}
+                        </h5>
+                        <p className="text-[11px] text-neutral-500 line-clamp-2 mt-0.5">
+                          {ad.description}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-neutral-100 text-xs">
+                      <button
+                        onClick={() => handleToggleAd(ad.id)}
+                        className={`px-2.5 py-1 rounded-full text-[10px] font-black transition-colors ${
+                          ad.isActive
+                            ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                            : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'
+                        }`}
+                      >
+                        {ad.isActive ? '● Active' : '○ Inactive'}
+                      </button>
+
+                      <div className="flex items-center gap-2">
+                        {ad.linkUrl && (
+                          <a
+                            href={ad.linkUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="p-1.5 text-neutral-400 hover:text-neutral-700"
+                            title="Visit Link"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        )}
+                        <button
+                          onClick={() => handleDeleteAd(ad.id)}
+                          className="p-1.5 text-neutral-400 hover:text-rose-600 transition-colors"
+                          title="Delete Ad"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
 import { Navbar } from '../components/Navbar';
 import { Sidebar } from '../components/Sidebar';
@@ -30,6 +31,7 @@ import {
 } from 'lucide-react';
 
 export default function Home() {
+  const router = useRouter();
   const { user, isLoading } = useAuth();
   const [activeTab, setActiveTab] = useState('home');
   const [isAiAssistantOpen, setIsAiAssistantOpen] = useState(false);
@@ -40,6 +42,29 @@ export default function Home() {
   const [paymentOrder, setPaymentOrder] = useState<Order | null>(null);
   const [rateOrder, setRateOrder] = useState<Order | null>(null);
   const [allUserOrders, setAllUserOrders] = useState<Order[]>([]);
+
+  const handleOpenCart = () => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      router.push('/cart');
+    } else {
+      setIsCartOpen(true);
+    }
+  };
+
+  // Check URL parameters for tab and orderId (e.g. returning from /cart)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get('tab');
+      const orderIdParam = params.get('orderId');
+      if (tabParam) {
+        setActiveTab(tabParam);
+      }
+      if (orderIdParam) {
+        setSelectedTrackingOrderId(orderIdParam);
+      }
+    }
+  }, []);
 
   // Automatically adjust default tab when role changes
   useEffect(() => {
@@ -85,7 +110,7 @@ export default function Home() {
     <div className="min-h-screen bg-[#FAF7F2] flex flex-col">
       {/* Top Navigation */}
       <Navbar
-        onOpenCart={() => setIsCartOpen(true)}
+        onOpenCart={handleOpenCart}
         onOpenAiAssistant={() => {
           setAiAssistantMode('voice');
           setIsAiAssistantOpen(true);
@@ -110,7 +135,7 @@ export default function Home() {
             setAiAssistantMode('voice');
             setIsAiAssistantOpen(true);
           }}
-          onOpenCart={() => setIsCartOpen(true)}
+          onOpenCart={handleOpenCart}
         />
 
         {/* Main Content Area */}
@@ -122,8 +147,8 @@ export default function Home() {
                 setAiAssistantMode(mode);
                 setIsAiAssistantOpen(true);
               }}
-              onOpenCart={() => setIsCartOpen(true)}
-              onSelectService={() => setIsCartOpen(true)}
+              onOpenCart={handleOpenCart}
+              onSelectService={() => handleOpenCart()}
               onNavigateTab={(tab) => {
                 setActiveTab(tab);
                 if (tab === 'orders') fetchUserOrders();
@@ -133,6 +158,7 @@ export default function Home() {
                 setActiveTab('orders');
               }}
               searchQuery={searchQuery}
+              onSearchChange={(q) => setSearchQuery(q)}
             />
           )}
 
@@ -264,15 +290,26 @@ export default function Home() {
           if (tab === 'orders') fetchUserOrders();
         }}
         onOpenAiAssistant={() => setIsAiAssistantOpen(true)}
-        onOpenCart={() => setIsCartOpen(true)}
+        onOpenCart={handleOpenCart}
       />
 
       {/* Modals & Drawers */}
       <AIHybridOrderAssistant
-        isOpen={isAiAssistantOpen}
+        isOpen={isAiAssistantOpen || activeTab === 'ai-order'}
         initialTab={aiAssistantMode}
-        onClose={() => setIsAiAssistantOpen(false)}
-        onProceedToCheckout={() => setIsCartOpen(true)}
+        onClose={() => {
+          setIsAiAssistantOpen(false);
+          if (activeTab === 'ai-order') setActiveTab('home');
+        }}
+        onProceedToCheckout={() => {
+          setIsAiAssistantOpen(false);
+          handleOpenCart();
+        }}
+        onOrderCreated={(orderId) => {
+          setSelectedTrackingOrderId(orderId);
+          setActiveTab('orders');
+          fetchUserOrders();
+        }}
       />
 
       <CartDrawer

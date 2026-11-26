@@ -212,3 +212,17 @@ export interface Order {
   reviews?: Review[];
   complaints?: Complaint[];
 }
+
+export interface Advertisement {
+  id: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  linkUrl: string;
+  badge: string;
+  category: 'FURNITURE' | 'HOUSEHOLD' | 'LOCAL_SHOP' | 'PROMOTION';
+  type: 'BANNER' | 'COMPACT';
+  isActive: boolean;
+  createdAt?: string;
+}
+

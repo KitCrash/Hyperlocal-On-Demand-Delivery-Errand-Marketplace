@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import { Home, Sparkles, ShoppingBag, Bike, ShieldCheck, User, Compass } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
@@ -18,6 +19,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   onOpenAiAssistant,
   onOpenCart,
 }) => {
+  const router = useRouter();
   const { user } = useAuth();
   const { items } = useCart();
 
@@ -85,7 +87,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           </button>
         ) : (
           <button
-            onClick={onOpenCart}
+            onClick={() => router.push('/cart')}
             className="flex flex-col items-center justify-center p-2 rounded-full text-neutral-500 hover:text-neutral-800 relative"
             title="Cart"
           >

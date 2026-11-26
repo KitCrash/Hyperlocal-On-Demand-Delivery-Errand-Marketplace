@@ -6,9 +6,9 @@ const router = Router();
 // Sample multilingual prompts for quick testing in UI
 const SAMPLE_PROMPTS = {
   bengali: [
-    'দুটো দেশি লাল পিয়াঁজ এক কেজি আলু আর ২৫০ গ্রাম কাঁচা লঙ্কা',
-    'এক কেজি রুই মাছ কাটা আর এক প্যাকেট আমুল দুধ',
-    'ছয়টা দেশি ডিম আর এক লিটার সরিষার তেল',
+    '2 Desi red onions, 1 kg potatoes and 250g green chillies',
+    '1 kg sliced Rohu fish and 1 packet Amul milk',
+    '6 country eggs and 1 litre mustard oil',
   ],
   hindi: [
     'दो किलो नासिक प्याज, एक किलो आलू और आधा किलो टमाटर',

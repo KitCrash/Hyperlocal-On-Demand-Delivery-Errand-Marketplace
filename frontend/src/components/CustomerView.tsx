@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Product, Store, ServiceType, Order } from '../types';
 import { apiRequest } from '../lib/api';
 import { useCart } from '../context/CartContext';
@@ -31,6 +32,10 @@ import {
   HeartPulse,
   ShoppingBasket,
   Zap,
+  MapPin,
+  Pencil,
+  MessageSquare,
+  ChevronDown,
 } from 'lucide-react';
 
 interface CustomerViewProps {
@@ -40,6 +45,7 @@ interface CustomerViewProps {
   onNavigateTab: (tab: string) => void;
   onSelectOrderToTrack?: (orderId: string) => void;
   searchQuery?: string;
+  onSearchChange?: (q: string) => void;
 }
 
 export const CustomerView: React.FC<CustomerViewProps> = ({
@@ -49,8 +55,10 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
   onNavigateTab,
   onSelectOrderToTrack,
   searchQuery = '',
+  onSearchChange,
 }) => {
-  const { addItem, setServiceType } = useCart();
+  const router = useRouter();
+  const { addItem, setServiceType, setPickupAddress } = useCart();
   const [products, setProducts] = useState<Product[]>([]);
   const [stores, setStores] = useState<Store[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -58,81 +66,32 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
   const [loading, setLoading] = useState(true);
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [selectedProductHistory, setSelectedProductHistory] = useState<any | null>(null);
+  const [selectedArea, setSelectedArea] = useState('New Market');
+  const [showAreaDropdown, setShowAreaDropdown] = useState(false);
+  const [localSearch, setLocalSearch] = useState('');
 
-  // Rotating Hero Banner State (Changes every 1 second)
-  const promoSlides = [
-    {
-      id: 1,
-      badge: '🌾 Rural & Hyperlocal Daily Mandi',
-      title: 'Fresh Produce & Daily Mandi in 30 Mins',
-      desc: 'Unpriced vegetable mandi produce verified at the counter by nearby riders with 100% price approval guarantee.',
-      cta: 'Order Mandi Fresh',
-      service: 'GROCERY_SHOPPING' as ServiceType,
-      category: 'Vegetables & Mandi',
-      tag: 'Verified Mandi Rates',
-      icon: '🥦',
-    },
-    {
-      id: 2,
-      badge: '🎙️ Multilingual AI Assistant',
-      title: 'Speak Bengali, Hindi or English – AI Orders Instantly',
-      desc: 'Smart voice recognition & handwritten OCR automatically extract items and merge duplicates into an editable list.',
-      cta: 'Try Voice Assistant',
-      service: 'GROCERY_SHOPPING' as ServiceType,
-      category: 'All',
-      tag: 'Voice & OCR Powered',
-      icon: '✨',
-    },
-    {
-      id: 3,
-      badge: '📦 Peer-to-Peer Express Delivery',
-      title: 'P2P Parcel Pickup & Drop Across Town',
-      desc: 'Send documents, keys, forgotten lunchboxes, or packages with dedicated nearby riders and live GPS radar.',
-      cta: 'Book Parcel Drop',
-      service: 'PARCEL_PICKUP_DROP' as ServiceType,
-      category: 'All',
-      tag: 'Pickup in 10 Mins',
-      icon: '📦',
-    },
-    {
-      id: 4,
-      badge: '💊 Transparent Pharmacy Errand',
-      title: 'Health Essentials & Prescription Chemist Supplies',
-      desc: 'Emergency medicines, pain relief strips, and surgical supplies fetched from licensed neighborhood chemists at MRP.',
-      cta: 'Order Medicines',
-      service: 'CUSTOM_ERRAND' as ServiceType,
-      category: 'Pharmacy',
-      tag: '100% Genuine MRP',
-      icon: '💊',
-    },
-    {
-      id: 5,
-      badge: '🚚 Big & Bulky Logistics',
-      title: 'Big & Heavy Utility, Hardware & Appliance Delivery',
-      desc: 'Water pipes, buckets, extension boards, and bulky hardware items delivered right to your door with care.',
-      cta: 'Heavy Errand Delivery',
-      service: 'CUSTOM_ERRAND' as ServiceType,
-      category: 'Hardware & Plumbing',
-      tag: 'Heavy Errand Friendly',
-      icon: '🔧',
-    },
+  const SERVICE_AREAS = [
+    { id: 'new-market', name: 'New Market', region: 'Kolkata Central', defaultPickup: 'New Market Mandi & SS Hogg Market, Kolkata' },
+    { id: 'new-town', name: 'New Town', region: 'Action Area 1', defaultPickup: 'New Town Fresh Vegetable & Fish Mandi, Stall #14' },
+    { id: 'gariahat', name: 'Gariahat', region: 'South Kolkata', defaultPickup: 'Gariahat Daily Vegetable & Fish Market' },
+    { id: 'salt-lake', name: 'Salt Lake', region: 'BD Block Market', defaultPickup: 'Salt Lake BD Block Daily Market' },
+    { id: 'shyambazar', name: 'Hatibagan', region: 'North Kolkata', defaultPickup: 'Hatibagan Municipal Market Stall' },
+    { id: 'koley-market', name: 'Koley Market', region: 'Sealdah Wholesale Yard', defaultPickup: 'Koley Market Wholesale Vegetable Yard, Sealdah' },
   ];
 
-  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
-  const [slideFade, setSlideFade] = useState(false);
+  const handleSelectArea = (area: (typeof SERVICE_AREAS)[0]) => {
+    setSelectedArea(area.name);
+    setPickupAddress(area.defaultPickup);
+    setShowAreaDropdown(false);
+  };
 
-  // Automatically rotate promotional message every 1 second (1000ms) with smooth transitions
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setSlideFade(true);
-      setTimeout(() => {
-        setCurrentSlideIndex((prev) => (prev + 1) % promoSlides.length);
-        setSlideFade(false);
-      }, 150);
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [promoSlides.length]);
+  const handleOpenCart = () => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      router.push('/cart');
+    } else {
+      onOpenCart();
+    }
+  };
 
   // Load products, stores, and recent real orders
   useEffect(() => {
@@ -232,7 +191,6 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
     }
   };
 
-  const activeSlide = promoSlides[currentSlideIndex];
 
   // Helper for Order Status Badge
   const getStatusBadge = (status: string) => {
@@ -310,7 +268,7 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
             {p.name}
           </h4>
           <p className="text-[11px] text-neutral-500 line-clamp-1 mt-0.5">
-            {p.nameBengali || p.nameHindi || p.category}
+            {p.category} · {p.unit}
           </p>
         </div>
 
@@ -348,100 +306,289 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
   return (
     <div className="space-y-6 sm:space-y-7 max-w-7xl mx-auto pb-20 md:pb-8">
       {/* =========================================================================
-          2. HERO BANNER: Full-width, rotating text every 1s with smooth transitions
+          TATKAL HEADER & QUICK OPTIONS
           ========================================================================= */}
-      <section className="relative w-full rounded-3xl overflow-hidden bg-gradient-to-r from-[#F4DAC4] via-[#EBBDA0] to-[#E3A378] p-6 sm:p-8 shadow-sm border border-[#E5C7B0] transition-all">
-        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
-          
-          {/* Left Text Content (Smoothly fades and slides every 1 second) */}
-          <div className={`space-y-3 max-w-xl text-center md:text-left transition-all duration-200 ${
-            slideFade ? 'opacity-40 translate-y-1' : 'opacity-100 translate-y-0'
-          }`}>
-            <span className="inline-block px-3 py-1 rounded-full bg-white/80 backdrop-blur-md text-[11px] font-extrabold text-brand-900 uppercase tracking-wider shadow-sm">
-              {activeSlide.badge}
-            </span>
-
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-neutral-900 tracking-tight leading-tight">
-              {activeSlide.title}
+      <section className="w-full rounded-3xl overflow-hidden shadow-sm border border-[#0088EA]/20 bg-white">
+        {/* Top Header Bar: "Add Item" + Location "Your Area: New Market" */}
+        <div className="bg-[#0088EA] px-4 sm:px-6 py-3.5 flex items-center justify-between text-white relative">
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white select-none">
+              Add Item
             </h1>
-
-            <p className="text-xs sm:text-sm text-neutral-800/85 leading-relaxed font-medium">
-              {activeSlide.desc}
-            </p>
-
-            <div className="pt-2 flex flex-wrap gap-2.5 justify-center md:justify-start">
-              <button
-                onClick={() => {
-                  if (activeSlide.id === 2) {
-                    onOpenAiAssistant('voice');
-                  } else {
-                    setServiceType(activeSlide.service);
-                    if (activeSlide.category !== 'All') {
-                      setSelectedCategory(activeSlide.category);
-                    }
-                    onOpenCart();
-                  }
-                }}
-                className="py-2.5 px-6 rounded-full bg-neutral-900 text-white text-xs sm:text-sm font-extrabold hover:bg-neutral-800 shadow-md active:scale-95 transition-transform"
-              >
-                {activeSlide.cta}
-              </button>
-
-              <button
-                onClick={() => onOpenAiAssistant('voice')}
-                className="py-2.5 px-5 rounded-full bg-white/90 text-brand-900 text-xs sm:text-sm font-extrabold hover:bg-white shadow-sm transition-all flex items-center gap-1.5"
-              >
-                <Mic className="w-3.5 h-3.5 text-brand-600" />
-                <span>Voice Order</span>
-              </button>
-            </div>
           </div>
 
-          {/* Right Visual Image & Live Rates Tag */}
-          <div className="relative w-44 sm:w-60 h-44 sm:h-52 shrink-0 flex items-center justify-center">
-            <img
-              src="https://images.unsplash.com/photo-1542838132-92c53300491e?w=500"
-              alt="Hyperlocal Errands"
-              className="w-full h-full object-cover rounded-3xl shadow-xl border-4 border-white/70"
-            />
-            {/* Live rates badge - Clean, solid, no blinking dots */}
-            <div className="absolute -bottom-2 -left-2 bg-white px-3 py-1.5 rounded-2xl shadow-lg border border-neutral-100 flex items-center gap-1.5 text-xs font-bold text-neutral-800">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span>{activeSlide.tag}</span>
-            </div>
+          {/* Location Area Selector */}
+          <div className="relative">
+            <button
+              onClick={() => setShowAreaDropdown(!showAreaDropdown)}
+              className="flex items-center gap-2 text-right hover:opacity-90 active:scale-95 transition-all focus:outline-none"
+              title="Change Delivery Area"
+            >
+              <MapPin className="w-5 h-5 text-white shrink-0" />
+              <div className="text-left leading-tight">
+                <span className="text-[10px] sm:text-[11px] text-sky-100 font-medium block">
+                  Your Area:
+                </span>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs sm:text-sm font-bold text-white block">
+                    {selectedArea}
+                  </span>
+                  <ChevronDown className="w-3.5 h-3.5 text-sky-200" />
+                </div>
+              </div>
+            </button>
+
+            {/* Dropdown for Service Areas */}
+            {showAreaDropdown && (
+              <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-white shadow-2xl border border-neutral-100 p-2 z-50 text-neutral-800 animate-in fade-in zoom-in-95 duration-150">
+                <div className="px-3 py-1.5 border-b border-neutral-100 mb-1 text-[10px] font-bold text-neutral-400 uppercase tracking-wider">
+                  Nearby Delivery Hubs
+                </div>
+                <div className="space-y-1">
+                  {SERVICE_AREAS.map((area) => (
+                    <button
+                      key={area.id}
+                      onClick={() => handleSelectArea(area)}
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-xs transition-colors ${
+                        selectedArea === area.name
+                          ? 'bg-sky-50 text-sky-900 font-bold'
+                          : 'hover:bg-neutral-50 text-neutral-700'
+                      }`}
+                    >
+                      <div>
+                        <span className="block font-bold">{area.name}</span>
+                        <span className="text-[10px] text-neutral-400">{area.region}</span>
+                      </div>
+                      {selectedArea === area.name && (
+                        <Check className="w-3.5 h-3.5 text-sky-600" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* 1-Second Slide Indicator Dots */}
-        <div className="mt-5 flex items-center justify-center gap-1.5">
-          {promoSlides.map((slide, idx) => (
-            <button
-              key={slide.id}
-              onClick={() => setCurrentSlideIndex(idx)}
-              className={`h-1.5 rounded-full transition-all ${
-                currentSlideIndex === idx
-                  ? 'w-6 bg-neutral-900'
-                  : 'w-2 bg-neutral-800/30 hover:bg-neutral-800/50'
-              }`}
-              title={`Slide ${idx + 1}`}
-              aria-label={`Slide ${idx + 1}`}
+        {/* Search Bar + 3 Quick Action Options */}
+        <div className="p-3.5 sm:p-5 bg-white space-y-3 sm:space-y-4">
+          {/* Search Bar with Orange Mic & Blue Camera */}
+          <div className="relative flex items-center">
+            <input
+              type="text"
+              value={searchQuery || localSearch}
+              onChange={(e) => {
+                setLocalSearch(e.target.value);
+                onSearchChange?.(e.target.value);
+              }}
+              placeholder="What do you want delivered? Search items..."
+              className="w-full pl-4 pr-24 py-3 rounded-2xl bg-white border border-neutral-200 text-xs sm:text-sm font-medium text-neutral-800 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-[#0088EA]/20 focus:border-[#0088EA] transition-all shadow-xs"
             />
-          ))}
+            {/* Right action icons */}
+            <div className="absolute right-3 flex items-center gap-1.5">
+              <button
+                onClick={() => onOpenAiAssistant('voice')}
+                className="p-1.5 rounded-full text-orange-500 hover:text-orange-600 hover:bg-orange-50 active:scale-95 transition-all"
+                title="AI Voice Order"
+                aria-label="Voice search"
+              >
+                <Mic className="w-5 h-5 text-[#f97316]" />
+              </button>
+              <button
+                onClick={() => onOpenAiAssistant('image')}
+                className="p-1.5 rounded-full text-blue-600 hover:text-blue-700 hover:bg-blue-50 active:scale-95 transition-all"
+                title="AI Image OCR"
+                aria-label="Photo search"
+              >
+                <Camera className="w-5 h-5 text-[#2563eb]" />
+              </button>
+            </div>
+          </div>
+
+          {/* 3 Quick Action Cards */}
+          <div className="grid grid-cols-3 gap-2 sm:gap-4">
+            {/* Card 1: Voice Note */}
+            <button
+              onClick={() => onOpenAiAssistant('voice')}
+              className="p-2 sm:p-4 rounded-2xl bg-white border border-neutral-200 hover:border-blue-500 hover:shadow-md active:scale-95 transition-all flex flex-col items-center justify-center text-center group cursor-pointer"
+            >
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center mb-1 text-blue-600 group-hover:scale-110 transition-transform bg-blue-50">
+                <Pencil className="w-5 h-5 text-[#2563eb]" />
+              </div>
+              <span className="text-xs sm:text-sm font-bold text-neutral-800 leading-tight">
+                Voice Note
+              </span>
+              <span className="text-[10px] sm:text-xs font-semibold text-neutral-400 leading-tight">
+                Record
+              </span>
+            </button>
+
+            {/* Card 2: Write List */}
+            <button
+              onClick={() => onOpenAiAssistant('manual')}
+              className="p-2 sm:p-4 rounded-2xl bg-white border border-neutral-200 hover:border-blue-500 hover:shadow-md active:scale-95 transition-all flex flex-col items-center justify-center text-center group cursor-pointer"
+            >
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center mb-1 text-blue-600 group-hover:scale-110 transition-transform bg-blue-50">
+                <MessageSquare className="w-5 h-5 text-[#2563eb]" />
+              </div>
+              <span className="text-xs sm:text-sm font-bold text-neutral-800 leading-tight">
+                Write List
+              </span>
+              <span className="text-[10px] sm:text-xs font-semibold text-neutral-400 leading-tight">
+                Type
+              </span>
+            </button>
+
+            {/* Card 3: Upload Photo */}
+            <button
+              onClick={() => onOpenAiAssistant('image')}
+              className="p-2 sm:p-4 rounded-2xl bg-white border border-neutral-200 hover:border-blue-500 hover:shadow-md active:scale-95 transition-all flex flex-col items-center justify-center text-center group cursor-pointer"
+            >
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center mb-1 text-blue-600 group-hover:scale-110 transition-transform bg-blue-50">
+                <Camera className="w-5 h-5 text-[#2563eb]" />
+              </div>
+              <span className="text-xs sm:text-sm font-bold text-neutral-800 leading-tight">
+                Upload Photo
+              </span>
+              <span className="text-[10px] sm:text-xs font-semibold text-neutral-400 leading-tight">
+                Scan Slip
+              </span>
+            </button>
+          </div>
         </div>
       </section>
 
       {/* =========================================================================
-          3. MAIN SERVICE CATEGORIES: 5 Cards (Row 1: 3 cards, Row 2: 2 cards centered)
+          3. MAIN SERVICE CATEGORIES:
+             - Mobile: Compact Icon Bubbles (Zepto / Blinkit / Swiggy Style)
+             - Desktop: Preserved 5-Card Layout
           ========================================================================= */}
-      <section className="space-y-3">
+      <section className="space-y-2.5 sm:space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-extrabold text-neutral-900 uppercase tracking-wider">
+          <h2 className="text-xs sm:text-sm font-extrabold text-neutral-900 uppercase tracking-wider">
             Main Service Categories
           </h2>
-          <span className="text-xs text-brand-600 font-bold">5 Hyperlocal Services</span>
+          <span className="text-[11px] sm:text-xs text-brand-600 font-bold">5 Hyperlocal Services</span>
         </div>
 
-        <div className="space-y-3">
+        {/* MOBILE VIEW: Compact Icon Bubbles */}
+        <div className="sm:hidden bg-white p-2.5 rounded-2xl border border-[#E8E1D7] shadow-xs">
+          <div className="grid grid-cols-5 gap-1">
+            {/* Bubble 1: Grocery Order */}
+            <button
+              onClick={() => {
+                setSelectedCategory('Vegetables & Mandi');
+                setServiceType('GROCERY_SHOPPING');
+                onSelectService('GROCERY_SHOPPING');
+              }}
+              className="flex flex-col items-center text-center group active:scale-90 transition-transform focus:outline-none"
+            >
+              <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-b from-emerald-50 to-emerald-100 border border-emerald-200/80 flex items-center justify-center text-2xl shadow-xs group-hover:scale-105 transition-transform">
+                🥦
+                <span className="absolute -top-1 -right-1 bg-emerald-600 text-white text-[7px] font-black px-1 py-0.2 rounded-full uppercase tracking-tighter shadow-xs">
+                  Fresh
+                </span>
+              </div>
+              <span className="text-[11px] font-extrabold text-neutral-900 mt-1 leading-tight truncate w-full">
+                Grocery
+              </span>
+              <span className="text-[9px] font-semibold text-neutral-400 -mt-0.5">
+                Mandi
+              </span>
+            </button>
+
+            {/* Bubble 2: Health & Medicine */}
+            <button
+              onClick={() => {
+                setSelectedCategory('Pharmacy');
+                setServiceType('CUSTOM_ERRAND');
+                onSelectService('CUSTOM_ERRAND');
+              }}
+              className="flex flex-col items-center text-center group active:scale-90 transition-transform focus:outline-none"
+            >
+              <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-b from-rose-50 to-rose-100 border border-rose-200/80 flex items-center justify-center text-2xl shadow-xs group-hover:scale-105 transition-transform">
+                💊
+                <span className="absolute -top-1 -right-1 bg-rose-600 text-white text-[7px] font-black px-1 py-0.2 rounded-full uppercase tracking-tighter shadow-xs">
+                  MRP
+                </span>
+              </div>
+              <span className="text-[11px] font-extrabold text-neutral-900 mt-1 leading-tight truncate w-full">
+                Medicine
+              </span>
+              <span className="text-[9px] font-semibold text-neutral-400 -mt-0.5">
+                Chemist
+              </span>
+            </button>
+
+            {/* Bubble 3: P2P Delivery */}
+            <button
+              onClick={() => {
+                setServiceType('PARCEL_PICKUP_DROP');
+                onSelectService('PARCEL_PICKUP_DROP');
+                handleOpenCart();
+              }}
+              className="flex flex-col items-center text-center group active:scale-90 transition-transform focus:outline-none"
+            >
+              <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-b from-sky-50 to-sky-100 border border-sky-200/80 flex items-center justify-center text-2xl shadow-xs group-hover:scale-105 transition-transform">
+                📦
+                <span className="absolute -top-1 -right-1 bg-sky-600 text-white text-[7px] font-black px-1 py-0.2 rounded-full uppercase tracking-tighter shadow-xs">
+                  P2P
+                </span>
+              </div>
+              <span className="text-[11px] font-extrabold text-neutral-900 mt-1 leading-tight truncate w-full">
+                Parcel
+              </span>
+              <span className="text-[9px] font-semibold text-neutral-400 -mt-0.5">
+                Courier
+              </span>
+            </button>
+
+            {/* Bubble 4: Hybrid AI Order */}
+            <button
+              onClick={() => onOpenAiAssistant('voice')}
+              className="flex flex-col items-center text-center group active:scale-90 transition-transform focus:outline-none"
+            >
+              <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-b from-amber-100 to-amber-200 border border-amber-300 ring-2 ring-amber-400/40 flex items-center justify-center text-2xl shadow-xs group-hover:scale-105 transition-transform">
+                ✨
+                <span className="absolute -top-1 -right-1 bg-amber-600 text-white text-[7px] font-black px-1 py-0.2 rounded-full uppercase tracking-tighter shadow-xs">
+                  AI
+                </span>
+              </div>
+              <span className="text-[11px] font-extrabold text-neutral-900 mt-1 leading-tight truncate w-full">
+                AI Order
+              </span>
+              <span className="text-[9px] font-semibold text-neutral-400 -mt-0.5">
+                Voice/OCR
+              </span>
+            </button>
+
+            {/* Bubble 5: Big & Heavy Delivery */}
+            <button
+              onClick={() => {
+                setSelectedCategory('Hardware & Plumbing');
+                setServiceType('CUSTOM_ERRAND');
+                onSelectService('CUSTOM_ERRAND');
+              }}
+              className="flex flex-col items-center text-center group active:scale-90 transition-transform focus:outline-none"
+            >
+              <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-b from-purple-50 to-purple-100 border border-purple-200/80 flex items-center justify-center text-2xl shadow-xs group-hover:scale-105 transition-transform">
+                🚚
+                <span className="absolute -top-1 -right-1 bg-purple-600 text-white text-[7px] font-black px-1 py-0.2 rounded-full uppercase tracking-tighter shadow-xs">
+                  Heavy
+                </span>
+              </div>
+              <span className="text-[11px] font-extrabold text-neutral-900 mt-1 leading-tight truncate w-full">
+                Heavy
+              </span>
+              <span className="text-[9px] font-semibold text-neutral-400 -mt-0.5">
+                Cargo
+              </span>
+            </button>
+          </div>
+        </div>
+
+        {/* DESKTOP VIEW: 5 Expanded Cards */}
+        <div className="hidden sm:block space-y-3">
           {/* Row 1: 3 cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
             {/* Card 1: Grocery Order */}
@@ -503,7 +650,7 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
               onClick={() => {
                 setServiceType('PARCEL_PICKUP_DROP');
                 onSelectService('PARCEL_PICKUP_DROP');
-                onOpenCart();
+                handleOpenCart();
               }}
               className="p-4 sm:p-5 rounded-3xl bg-white border border-[#E8E1D7] text-left hover:border-brand-500/40 hover:shadow-md hover:-translate-y-0.5 active:scale-98 transition-all group flex flex-col justify-between h-full min-h-[125px]"
             >
@@ -546,7 +693,7 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
                   Hybrid AI Order
                 </h3>
                 <p className="text-[11px] text-neutral-600 mt-0.5 leading-snug">
-                  Speak in Bengali/Hindi or upload handwritten photo list
+                  Voice order in English/Hindi or upload shopping list photo
                 </p>
               </div>
             </button>
@@ -586,7 +733,7 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
           ========================================================================= */}
       <section className="flex items-center">
         <button
-          onClick={onOpenCart}
+          onClick={handleOpenCart}
           className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-[#E8E1D7] hover:border-brand-500/50 hover:bg-neutral-50 shadow-xs text-xs font-bold text-neutral-800 transition-all active:scale-95 group"
           title="Add items or custom errand"
         >

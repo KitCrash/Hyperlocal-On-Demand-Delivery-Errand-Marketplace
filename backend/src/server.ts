@@ -16,6 +16,7 @@ import partnerRoutes from './routes/partner.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import paymentsRoutes from './routes/payments.routes.js';
 import uploadRoutes from './routes/upload.routes.js';
+import advertisementsRoutes from './routes/advertisements.routes.js';
 
 const app = express();
 const server = http.createServer(app);
@@ -57,6 +58,7 @@ app.use('/api/partner', partnerRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/payments', paymentsRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/advertisements', advertisementsRoutes);
 
 // Real-time Socket.IO Connection Handler
 io.on('connection', (socket) => {

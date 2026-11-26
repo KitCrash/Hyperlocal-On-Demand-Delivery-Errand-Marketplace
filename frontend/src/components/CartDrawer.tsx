@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { apiRequest } from '../lib/api';
@@ -37,6 +38,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   onOrderCreated,
   onOpenAiAssistant,
 }) => {
+  const router = useRouter();
   const { user } = useAuth();
   const {
     items,
@@ -62,6 +64,14 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   const [tipAmount, setTipAmount] = useState<number>(10);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
+  // In mobile view, redirect to the complete separate cart page
+  useEffect(() => {
+    if (isOpen && typeof window !== 'undefined' && window.innerWidth < 768) {
+      onClose();
+      router.push('/cart');
+    }
+  }, [isOpen, onClose, router]);
 
   if (!isOpen) return null;
 
