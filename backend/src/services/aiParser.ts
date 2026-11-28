@@ -36,6 +36,26 @@ const ENGLISH_NUMBERS: Record<string, number> = {
   'half': 0.5, 'quarter': 0.25,
 };
 
+// Conversational fillers, greetings, and non-product phrases that should never be added as items
+const NON_PRODUCT_PHRASES = new Set([
+  'hi', 'hello', 'hey', 'hiya', 'hii', 'hiii', 'namaste', 'hola', 'yo',
+  'good morning', 'good afternoon', 'good evening', 'good night',
+  'thanks', 'thank you', 'thx', 'ty', 'ok', 'okay', 'k', 'kk',
+  'yes', 'no', 'yeah', 'yep', 'nope', 'please', 'pls', 'plz',
+  'sorry', 'bye', 'goodbye', 'test', 'testing', 'nothing', 'none', 'nil',
+  'asdf', 'qwerty', 'lol', 'hmm', 'uhh', 'umm', 'bro', 'sir', 'madam',
+  'how are you', 'what is this', 'help', 'start', 'stop',
+]);
+
+function isNonProductPhrase(text: string): boolean {
+  const normalized = text.toLowerCase().replace(/[^a-z0-9\u0980-\u09FF\u0900-\u097F\s]/g, '').trim();
+  if (!normalized || normalized.length < 2) return true;
+  if (NON_PRODUCT_PHRASES.has(normalized)) return true;
+  // Reject pure numbers (e.g. "123")
+  if (/^\d+(\.\d+)?$/.test(normalized)) return true;
+  return false;
+}
+
 /**
  * Intelligent Multilingual Natural Language parser for Voice and Text transcripts
  * Supports Bengali, Hindi, English, and Hinglish/Banglish transliterations
@@ -58,6 +78,9 @@ export async function parseMultilingualOrderText(
 
   for (const phrase of phrases) {
     let cleanPhrase = phrase.toLowerCase();
+    if (isNonProductPhrase(cleanPhrase)) {
+      continue;
+    }
 
     // Check for quantity
     let quantity = 1;
@@ -299,6 +322,9 @@ export async function parseMultilingualOrderText(
     }
 
     const itemName = bestProduct ? bestProduct.name : phrase.replace(/\b(?:\d+|kg|g|litre|packet|piece)\b/gi, '').trim() || phrase;
+    if (!bestProduct && isNonProductPhrase(itemName)) {
+      continue;
+    }
     const estPrice = bestProduct ? bestProduct.estimatedPrice * quantity : 50 * quantity;
 
     extractedItems.push({

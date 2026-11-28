@@ -449,11 +449,33 @@ export const AIHybridOrderAssistant: React.FC<AIHybridOrderAssistantProps> = ({
     );
   };
 
+  // Reject greetings, conversational fillers, and non-product inputs
+  const isNonProductName = (raw: string): boolean => {
+    const normalized = raw.toLowerCase().replace(/[^a-z0-9\u0980-\u09FF\u0900-\u097F\s]/g, '').trim();
+    if (!normalized || normalized.length < 2) return true;
+    const blocked = new Set([
+      'hi', 'hello', 'hey', 'hiya', 'hii', 'hiii', 'namaste', 'hola', 'yo',
+      'good morning', 'good afternoon', 'good evening', 'good night',
+      'thanks', 'thank you', 'thx', 'ty', 'ok', 'okay', 'k', 'kk',
+      'yes', 'no', 'yeah', 'yep', 'nope', 'please', 'pls', 'plz',
+      'sorry', 'bye', 'goodbye', 'test', 'testing', 'nothing', 'none', 'nil',
+      'asdf', 'qwerty', 'lol', 'hmm', 'uhh', 'umm', 'bro', 'sir', 'madam',
+    ]);
+    if (blocked.has(normalized)) return true;
+    if (/^\d+(\.\d+)?$/.test(normalized)) return true;
+    return false;
+  };
+
   // Add manual item
   const handleAddManualItem = () => {
-    if (!manualName.trim()) return;
+    const trimmed = manualName.trim();
+    if (!trimmed) return;
+    if (isNonProductName(trimmed)) {
+      setValidationError(`"${trimmed}" is not a valid product. Please enter a real product name.`);
+      return;
+    }
     const newItem: OrderItem = {
-      name: manualName.trim(),
+      name: trimmed,
       quantity: parseFloat(manualQty) || 1,
       unit: manualUnit,
       estimatedPrice: parseFloat(manualPrice) || 50,
@@ -1001,7 +1023,10 @@ export const AIHybridOrderAssistant: React.FC<AIHybridOrderAssistantProps> = ({
                             </div>
                           ) : (
                             <div>
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-orange-100 text-orange-800 text-[10px] font-black shrink-0">
+                                  {idx + 1}
+                                </span>
                                 <span className="text-xs font-black text-neutral-900">{item.name}</span>
                                 <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-white border text-neutral-600">
                                   {item.inputMethod === 'VOICE'
@@ -1010,14 +1035,23 @@ export const AIHybridOrderAssistant: React.FC<AIHybridOrderAssistantProps> = ({
                                     ? '📷 Handwritten'
                                     : '✍️ Typed'}
                                 </span>
+                                {item.confidenceScore >= 0.8 ? (
+                                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700">
+                                    ✓ Verified
+                                  </span>
+                                ) : (
+                                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-700">
+                                    ⚠ Needs Verification
+                                  </span>
+                                )}
                               </div>
-                              <div className="flex items-center gap-3 text-xs text-neutral-600 mt-1">
+                              <div className="flex items-center gap-3 text-xs text-neutral-600 mt-1 pl-7">
                                 <span className="font-semibold text-neutral-700">
-                                  {item.quantity} {item.unit}
+                                  {item.quantity} {item.unit} × ₹{item.estimatedPrice}
                                 </span>
                                 <span>·</span>
                                 <span className="text-orange-700 font-extrabold">
-                                  Est: ₹{item.estimatedPrice * item.quantity}
+                                  ₹{Math.round(item.estimatedPrice * item.quantity)}
                                 </span>
                               </div>
                             </div>
@@ -1069,6 +1103,15 @@ export const AIHybridOrderAssistant: React.FC<AIHybridOrderAssistantProps> = ({
                         </div>
                       </div>
                     ))}
+                  </div>
+                  {/* Grand Total Summary */}
+                  <div className="mt-3 pt-3 border-t border-[#E8E1D7] flex items-center justify-between px-1">
+                    <span className="text-xs font-bold text-neutral-600">
+                      Grand Total ({shoppingList.length} {shoppingList.length === 1 ? 'item' : 'items'})
+                    </span>
+                    <span className="text-sm font-black text-orange-700">
+                      ₹{Math.round(shoppingList.reduce((sum, item) => sum + item.estimatedPrice * item.quantity, 0))}
+                    </span>
                   </div>
 
                   {/* Estimated Subtotal */}
