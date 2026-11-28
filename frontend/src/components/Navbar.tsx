@@ -154,15 +154,17 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={() => handleNavClick('home')}
               className="hidden sm:flex items-center gap-2 text-left focus:outline-none group"
             >
-              <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-brand-600 to-amber-500 flex items-center justify-center text-white shadow-sm shadow-brand-500/20 group-hover:scale-105 transition-transform">
-                <Bike className="w-4 h-4" />
-              </div>
+              <img
+                src="/zippit-logo.svg"
+                alt="Zippit"
+                className="w-9 h-9 rounded-2xl shadow-sm group-hover:scale-105 transition-transform"
+              />
               <div className="hidden lg:block leading-tight">
                 <span className="font-black text-base tracking-tight text-neutral-900 block">
-                  Hyper<span className="text-brand-600">Local</span>
+                  Zipp<span className="text-brand-600">it</span>
                 </span>
                 <span className="text-[9px] font-bold text-neutral-500 uppercase tracking-wider block">
-                  Errand Marketplace
+                  Hyperlocal Delivery
                 </span>
               </div>
             </button>
@@ -421,15 +423,17 @@ export const Navbar: React.FC<NavbarProps> = ({
               {/* Header */}
               <div className="flex items-center justify-between pb-3 border-b border-[#E8E1D7]">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-brand-600 to-amber-500 flex items-center justify-center text-white shadow-sm">
-                    <Bike className="w-5 h-5" />
-                  </div>
+                  <img
+                    src="/zippit-logo.svg"
+                    alt="Zippit"
+                    className="w-9 h-9 rounded-2xl shadow-sm"
+                  />
                   <div>
                     <span className="font-extrabold text-base tracking-tight text-neutral-900 block leading-tight">
-                      Hyper<span className="text-brand-600">Local</span>
+                      Zipp<span className="text-brand-600">it</span>
                     </span>
                     <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider block">
-                      Mandi & Errand Hub
+                      Hyperlocal Delivery
                     </span>
                   </div>
                 </div>

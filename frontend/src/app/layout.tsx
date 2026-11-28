@@ -4,7 +4,7 @@ import { AuthProvider } from '../context/AuthContext';
 import { CartProvider } from '../context/CartContext';
 
 export const metadata: Metadata = {
-  title: 'Hyperlocal - On-Demand Delivery & Errand Marketplace',
+  title: 'Zippit - Hyperlocal Delivery & Errands',
   description: 'AI Hybrid Ordering (Voice/OCR) + Dynamic Market Pricing + Realtime Delivery Tracking',
 };
 

@@ -72,6 +72,14 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
   const [selectedArea, setSelectedArea] = useState('New Market');
   const [showAreaDropdown, setShowAreaDropdown] = useState(false);
   const [localSearch, setLocalSearch] = useState('');
+  const [heroAdIndex, setHeroAdIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setHeroAdIndex((prev) => (prev + 1) % 3);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, []);
 
   const SERVICE_AREAS = [
     { id: 'new-market', name: 'New Market', region: 'Kolkata Central', defaultPickup: 'New Market Mandi & SS Hogg Market, Kolkata' },
@@ -540,6 +548,96 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
   return (
     <div className="space-y-6 sm:space-y-7 max-w-7xl mx-auto pb-20 md:pb-8">
       {/* =========================================================================
+          ANIMATED HERO AD BANNER
+          ========================================================================= */}
+      <section>
+        {/* Animated Auto-Rotating Hero Ad */}
+        {(() => {
+          const HERO_ADS = [
+            {
+              tag: 'FRESH MANDI',
+              title: 'Farm-Fresh Produce Delivered in 20 Mins',
+              subtitle: 'Direct from local market stalls at daily mandi rates.',
+              cta: 'Shop Grocery',
+              href: '/services/grocery',
+              bg: 'from-[#6b5344] via-[#4a382d] to-[#2b2019]',
+            },
+            {
+              tag: 'EXPRESS CHEMIST',
+              title: 'Medicines & Healthcare at True MRP',
+              subtitle: 'Upload prescriptions or order OTC essentials anytime.',
+              cta: 'Order Medicine',
+              href: '/services/medicine',
+              bg: 'from-[#3b4d5e] via-[#263544] to-[#16202a]',
+            },
+            {
+              tag: 'ZIPPIT PARCEL',
+              title: 'Send Parcels Across Town Instantly',
+              subtitle: 'Documents, keys, tiffins & urgent packages picked up fast.',
+              cta: 'Book Parcel',
+              href: '/services/parcel',
+              bg: 'from-[#5a4332] via-[#3e2d21] to-[#231912]',
+            },
+          ];
+          const ad = HERO_ADS[heroAdIndex];
+          return (
+            <div
+              className={`relative overflow-hidden rounded-3xl bg-gradient-to-r ${ad.bg} text-white p-6 sm:p-8 shadow-md transition-all duration-700`}
+            >
+              <div className="max-w-lg space-y-2.5 animate-in fade-in duration-500" key={heroAdIndex}>
+                <span className="inline-block text-[10px] font-black tracking-widest uppercase px-2.5 py-1 rounded-full bg-white/15 text-amber-200">
+                  {ad.tag}
+                </span>
+                <h3 className="text-xl sm:text-3xl font-black tracking-tight leading-tight">
+                  {ad.title}
+                </h3>
+                <p className="text-xs sm:text-sm text-white/80 font-medium">{ad.subtitle}</p>
+                <div className="pt-2">
+                  <button
+                    onClick={() => router.push(ad.href)}
+                    className="px-5 py-2.5 rounded-xl bg-[#FAF7F2] text-neutral-900 text-xs font-black hover:bg-white transition-all active:scale-95"
+                  >
+                    {ad.cta}
+                  </button>
+                </div>
+              </div>
+
+              {/* Prev / Next Controls & Dots */}
+              <div className="absolute bottom-4 right-4 flex items-center gap-2">
+                <div className="flex items-center gap-1 mr-1">
+                  {HERO_ADS.map((_, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setHeroAdIndex(idx)}
+                      aria-label={`Slide ${idx + 1}`}
+                      className={`h-1.5 rounded-full transition-all ${
+                        idx === heroAdIndex ? 'w-5 bg-white' : 'w-1.5 bg-white/40'
+                      }`}
+                    />
+                  ))}
+                </div>
+                <button
+                  onClick={() => setHeroAdIndex((prev) => (prev + 2) % 3)}
+                  className="w-7 h-7 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center text-xs font-bold"
+                  aria-label="Previous Ad"
+                >
+                  &lt;
+                </button>
+                <button
+                  onClick={() => setHeroAdIndex((prev) => (prev + 1) % 3)}
+                  className="w-7 h-7 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center text-xs font-bold"
+                  aria-label="Next Ad"
+                >
+                  &gt;
+                </button>
+              </div>
+            </div>
+          );
+        })()}
+
+      </section>
+
+      {/* =========================================================================
           TATKAL HEADER & QUICK OPTIONS
           ========================================================================= */}
       <section className="w-full rounded-3xl overflow-hidden shadow-sm border border-[#0088EA]/20 bg-white">
@@ -904,6 +1002,45 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
           ))}
         </div>
       </section>
+
+      {/* Infinite Scrolling Famous Brands Strip */}
+      <div className="py-2 overflow-hidden">
+        <div className="animate-marquee flex items-center gap-8">
+          {[
+            'Amul',
+            'Mother Dairy',
+            'Aashirvaad',
+            'Fortune',
+            'Tata Sampann',
+            'Dabur',
+            'Cipla',
+            'Britannia',
+            'Haldiram',
+            'ITC',
+            'Nestle',
+            'Surf Excel',
+            'Amul',
+            'Mother Dairy',
+            'Aashirvaad',
+            'Fortune',
+            'Tata Sampann',
+            'Dabur',
+            'Cipla',
+            'Britannia',
+            'Haldiram',
+            'ITC',
+            'Nestle',
+            'Surf Excel',
+          ].map((brand, idx) => (
+            <span
+              key={idx}
+              className="shrink-0 text-sm sm:text-base font-black text-neutral-700 tracking-wide uppercase"
+            >
+              {brand}
+            </span>
+          ))}
+        </div>
+      </div>
 
       {/* =========================================================================
           4. QUICK ACTIONS SECTION: One small, clean "+ Add" button
