@@ -56,7 +56,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           className="relative -top-4 w-12 h-12 rounded-full bg-gradient-to-tr from-brand-500 via-amber-500 to-amber-400 text-white flex items-center justify-center shadow-lg shadow-brand-500/30 active:scale-95 transition-transform"
           title="AI Hybrid Order"
         >
-          <Sparkles className="w-6 h-6" />
+          
           <span className="absolute -bottom-4 text-[9px] font-bold text-brand-700 whitespace-nowrap">
             AI Order
           </span>

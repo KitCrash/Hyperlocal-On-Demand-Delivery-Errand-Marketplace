@@ -128,7 +128,7 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
     if (!file) return;
 
     setIsScanningPhoto(true);
-    setStatusToast({ message: '📸 Scanning photo with AI OCR...', type: 'info' });
+    setStatusToast({ message: 'Scanning photo with AI OCR...', type: 'info' });
 
     try {
       let imageUrl: string | undefined;
@@ -158,7 +158,7 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
           });
         });
         setStatusToast({
-          message: `✅ Added ${res.items.length} items from photo to cart!`,
+          message: `Added ${res.items.length} items from photo to cart!`,
           type: 'success',
         });
         setTimeout(() => {
@@ -199,7 +199,7 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
         const fullTranscript = (accumulatedTranscriptRef.current || localSearch || searchQuery).trim();
 
         if (fullTranscript) {
-          setStatusToast({ message: `🎙️ Processing voice note: "${fullTranscript}"`, type: 'info' });
+          setStatusToast({ message: `Processing voice note: "${fullTranscript}"`, type: 'info' });
 
           try {
             const res = await apiRequest<{ items: OrderItem[] }>('/ai/parse-voice', {
@@ -219,7 +219,7 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
                   category: 'Vegetables & Mandi',
                 });
               });
-              setStatusToast({ message: `✅ Added ${res.items.length} items from voice to cart!`, type: 'success' });
+              setStatusToast({ message: `Added ${res.items.length} items from voice to cart!`, type: 'success' });
               setTimeout(() => {
                 handleOpenCart();
                 setStatusToast(null);
@@ -247,7 +247,7 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
     shouldKeepRecordingRef.current = true;
     setIsListeningVoice(true);
     setStatusToast({
-      message: '🔴 Recording started! Speak your items freely. Tap the red button when finished.',
+      message: 'Recording started! Speak your items freely. Tap the red button when finished.',
       type: 'info',
     });
 
@@ -453,15 +453,15 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
   const getServiceIcon = (type: string) => {
     switch (type) {
       case 'GROCERY_SHOPPING':
-        return <span className="text-lg">🥦</span>;
+        return <span className="text-lg"></span>;
       case 'SHOP_TO_HOME':
-        return <span className="text-lg">🏪</span>;
+        return <span className="text-lg"></span>;
       case 'PARCEL_PICKUP_DROP':
-        return <span className="text-lg">📦</span>;
+        return <span className="text-lg"></span>;
       case 'FOOD_ESSENTIALS':
         return <span className="text-lg">🍲</span>;
       case 'CUSTOM_ERRAND':
-        return <span className="text-lg">⚡</span>;
+        return <span className="text-lg"></span>;
       default:
         return <Package className="w-4 h-4 text-brand-600" />;
     }
@@ -636,7 +636,7 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
                 )}
                 <span>
                   {isListeningVoice
-                    ? `🎙️ Recording (${String(Math.floor(recordingSeconds / 60)).padStart(2, '0')}:${String(
+                    ? `Recording (${String(Math.floor(recordingSeconds / 60)).padStart(2, '0')}:${String(
                         recordingSeconds % 60
                       ).padStart(2, '0')}) — Speak freely, then tap Stop!`
                     : statusToast.message}
@@ -688,7 +688,7 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
                           category: 'Custom Errand',
                         });
                       });
-                      setStatusToast({ message: `✅ Added "${text}" to cart!`, type: 'success' });
+                      setStatusToast({ message: `Added "${text}" to cart!`, type: 'success' });
                       setTimeout(() => {
                         handleOpenCart();
                         setStatusToast(null);
@@ -699,7 +699,7 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
               }}
               placeholder={
                 isListeningVoice
-                  ? `🔴 Recording (${String(Math.floor(recordingSeconds / 60)).padStart(2, '0')}:${String(
+                  ? `Recording (${String(Math.floor(recordingSeconds / 60)).padStart(2, '0')}:${String(
                       recordingSeconds % 60
                     ).padStart(2, '0')})... Speak freely, tap Stop when done!`
                   : 'What do you want delivered? Search items...'
@@ -825,260 +825,83 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
           <span className="text-[11px] sm:text-xs text-brand-600 font-bold">5 Hyperlocal Services</span>
         </div>
 
-        {/* MOBILE VIEW: Compact Icon Bubbles */}
+        {/* MOBILE VIEW: Text-Only Service Tiles */}
         <div className="sm:hidden bg-white p-2.5 rounded-2xl border border-[#E8E1D7] shadow-xs">
-          <div className="grid grid-cols-5 gap-1">
-            {/* Bubble 1: Grocery Order */}
-            <button
-              onClick={() => {
-                setSelectedCategory('Vegetables & Mandi');
-                setServiceType('GROCERY_SHOPPING');
-                onSelectService('GROCERY_SHOPPING');
-              }}
-              className="flex flex-col items-center text-center group active:scale-90 transition-transform focus:outline-none"
-            >
-              <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-b from-emerald-50 to-emerald-100 border border-emerald-200/80 flex items-center justify-center text-2xl shadow-xs group-hover:scale-105 transition-transform">
-                🥦
-                <span className="absolute -top-1 -right-1 bg-emerald-600 text-white text-[7px] font-black px-1 py-0.2 rounded-full uppercase tracking-tighter shadow-xs">
-                  Fresh
-                </span>
-              </div>
-              <span className="text-[11px] font-extrabold text-neutral-900 mt-1 leading-tight truncate w-full">
-                Grocery
-              </span>
-              <span className="text-[9px] font-semibold text-neutral-400 -mt-0.5">
-                Mandi
-              </span>
-            </button>
-
-            {/* Bubble 2: Health & Medicine */}
-            <button
-              onClick={() => {
-                setSelectedCategory('Pharmacy');
-                setServiceType('CUSTOM_ERRAND');
-                onSelectService('CUSTOM_ERRAND');
-              }}
-              className="flex flex-col items-center text-center group active:scale-90 transition-transform focus:outline-none"
-            >
-              <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-b from-rose-50 to-rose-100 border border-rose-200/80 flex items-center justify-center text-2xl shadow-xs group-hover:scale-105 transition-transform">
-                💊
-                <span className="absolute -top-1 -right-1 bg-rose-600 text-white text-[7px] font-black px-1 py-0.2 rounded-full uppercase tracking-tighter shadow-xs">
-                  MRP
-                </span>
-              </div>
-              <span className="text-[11px] font-extrabold text-neutral-900 mt-1 leading-tight truncate w-full">
-                Medicine
-              </span>
-              <span className="text-[9px] font-semibold text-neutral-400 -mt-0.5">
-                Chemist
-              </span>
-            </button>
-
-            {/* Bubble 3: P2P Delivery */}
-            <button
-              onClick={() => {
-                setServiceType('PARCEL_PICKUP_DROP');
-                onSelectService('PARCEL_PICKUP_DROP');
-                handleOpenCart();
-              }}
-              className="flex flex-col items-center text-center group active:scale-90 transition-transform focus:outline-none"
-            >
-              <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-b from-sky-50 to-sky-100 border border-sky-200/80 flex items-center justify-center text-2xl shadow-xs group-hover:scale-105 transition-transform">
-                📦
-                <span className="absolute -top-1 -right-1 bg-sky-600 text-white text-[7px] font-black px-1 py-0.2 rounded-full uppercase tracking-tighter shadow-xs">
-                  P2P
-                </span>
-              </div>
-              <span className="text-[11px] font-extrabold text-neutral-900 mt-1 leading-tight truncate w-full">
-                Parcel
-              </span>
-              <span className="text-[9px] font-semibold text-neutral-400 -mt-0.5">
-                Courier
-              </span>
-            </button>
-
-            {/* Bubble 4: Hybrid AI Order */}
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="flex flex-col items-center text-center group active:scale-90 transition-transform focus:outline-none"
-            >
-              <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-b from-amber-100 to-amber-200 border border-amber-300 ring-2 ring-amber-400/40 flex items-center justify-center text-2xl shadow-xs group-hover:scale-105 transition-transform">
-                ✨
-                <span className="absolute -top-1 -right-1 bg-amber-600 text-white text-[7px] font-black px-1 py-0.2 rounded-full uppercase tracking-tighter shadow-xs">
-                  AI
-                </span>
-              </div>
-              <span className="text-[11px] font-extrabold text-neutral-900 mt-1 leading-tight truncate w-full">
-                AI Order
-              </span>
-              <span className="text-[9px] font-semibold text-neutral-400 -mt-0.5">
-                Voice/OCR
-              </span>
-            </button>
-
-            {/* Bubble 5: Big & Heavy Delivery */}
-            <button
-              onClick={() => {
-                setSelectedCategory('Hardware & Plumbing');
-                setServiceType('CUSTOM_ERRAND');
-                onSelectService('CUSTOM_ERRAND');
-              }}
-              className="flex flex-col items-center text-center group active:scale-90 transition-transform focus:outline-none"
-            >
-              <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-b from-purple-50 to-purple-100 border border-purple-200/80 flex items-center justify-center text-2xl shadow-xs group-hover:scale-105 transition-transform">
-                🚚
-                <span className="absolute -top-1 -right-1 bg-purple-600 text-white text-[7px] font-black px-1 py-0.2 rounded-full uppercase tracking-tighter shadow-xs">
-                  Heavy
-                </span>
-              </div>
-              <span className="text-[11px] font-extrabold text-neutral-900 mt-1 leading-tight truncate w-full">
-                Heavy
-              </span>
-              <span className="text-[9px] font-semibold text-neutral-400 -mt-0.5">
-                Cargo
-              </span>
-            </button>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { title: 'Grocery', sub: 'Mandi & Fresh', tag: 'Non-Returnable', href: '/services/grocery' },
+              { title: 'Medicine', sub: 'Chemist MRP', tag: 'Rx / OTC', href: '/services/medicine' },
+              { title: 'Parcel', sub: 'P2P Courier', tag: 'Direct Drop', href: '/services/parcel' },
+              { title: 'AI Order', sub: 'Voice / OCR', tag: 'Smart List', href: '/services/ai-order' },
+              { title: 'Heavy', sub: 'Cargo & Bulky', tag: 'Multi-Vehicle', href: '/services/heavy' },
+            ].map((svc) => (
+              <button
+                key={svc.href}
+                onClick={() => router.push(svc.href)}
+                className="p-3 rounded-xl bg-[#FAF7F2] border border-[#E8E1D7] text-left hover:border-brand-500/40 active:scale-98 transition-all"
+              >
+                <div className="flex items-center justify-between gap-1">
+                  <span className="text-xs font-extrabold text-neutral-900">{svc.title}</span>
+                  <span className="text-[9px] font-bold text-brand-700 bg-brand-50 border border-brand-200 px-1.5 py-0.5 rounded">
+                    {svc.tag}
+                  </span>
+                </div>
+                <span className="text-[10px] font-medium text-neutral-500 block mt-0.5">{svc.sub}</span>
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* DESKTOP VIEW: 5 Expanded Cards */}
-        <div className="hidden sm:block space-y-3">
-          {/* Row 1: 3 cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-            {/* Card 1: Grocery Order */}
+        {/* DESKTOP VIEW: 5 Text-Only Service Cards */}
+        <div className="hidden sm:grid sm:grid-cols-3 gap-3 sm:gap-4">
+          {[
+            {
+              title: 'Grocery & Mandi',
+              badge: 'Non-Returnable',
+              desc: 'Fresh mandi vegetables, fruits, fish bazaar, dairy & daily staples',
+              href: '/services/grocery',
+            },
+            {
+              title: 'Health & Medicine',
+              badge: 'Chemist MRP',
+              desc: 'Prescription medicines, chemist strips & healthcare items',
+              href: '/services/medicine',
+            },
+            {
+              title: 'P2P Parcel Drop',
+              badge: 'Direct Courier',
+              desc: 'Direct parcel pickup & drop for documents, keys & boxes',
+              href: '/services/parcel',
+            },
+            {
+              title: 'AI Voice & OCR Order',
+              badge: 'Smart Order',
+              desc: 'Speak your shopping list or upload a handwritten note',
+              href: '/services/ai-order',
+            },
+            {
+              title: 'Big & Heavy Delivery',
+              badge: 'Heavy Cargo',
+              desc: 'Water pipes, heavy buckets, power strips & bulky home supplies',
+              href: '/services/heavy',
+            },
+          ].map((svc) => (
             <button
-              onClick={() => {
-                setSelectedCategory('Vegetables & Mandi');
-                setServiceType('GROCERY_SHOPPING');
-                onSelectService('GROCERY_SHOPPING');
-              }}
-              className="p-4 sm:p-5 rounded-3xl bg-white border border-[#E8E1D7] text-left hover:border-brand-500/40 hover:shadow-md hover:-translate-y-0.5 active:scale-98 transition-all group flex flex-col justify-between h-full min-h-[125px]"
+              key={svc.href}
+              onClick={() => router.push(svc.href)}
+              className="p-4 sm:p-5 rounded-3xl bg-white border border-[#E8E1D7] text-left hover:border-brand-500/40 hover:shadow-md hover:-translate-y-0.5 active:scale-98 transition-all group flex flex-col justify-between h-full min-h-[115px]"
             >
               <div className="flex items-center justify-between mb-2">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-xl shadow-xs group-hover:scale-110 transition-transform">
-                  🥦
-                </div>
-                <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full">
-                  Mandi Fresh
+                <h3 className="text-sm sm:text-base font-black text-neutral-900 group-hover:text-brand-600 transition-colors">
+                  {svc.title}
+                </h3>
+                <span className="text-[10px] font-bold text-brand-700 bg-brand-50 border border-brand-200 px-2 py-0.5 rounded-full">
+                  {svc.badge}
                 </span>
               </div>
-              <div>
-                <h3 className="text-sm sm:text-base font-black text-neutral-900 group-hover:text-brand-600 transition-colors">
-                  Grocery Order
-                </h3>
-                <p className="text-[11px] text-neutral-500 mt-0.5 leading-snug">
-                  Fresh mandi vegetables, fish bazaar, dairy & daily staples
-                </p>
-              </div>
+              <p className="text-[11px] text-neutral-500 leading-snug">{svc.desc}</p>
             </button>
-
-            {/* Card 2: Health & Medicine */}
-            <button
-              onClick={() => {
-                setSelectedCategory('Pharmacy');
-                setServiceType('CUSTOM_ERRAND');
-                onSelectService('CUSTOM_ERRAND');
-              }}
-              className="p-4 sm:p-5 rounded-3xl bg-white border border-[#E8E1D7] text-left hover:border-brand-500/40 hover:shadow-md hover:-translate-y-0.5 active:scale-98 transition-all group flex flex-col justify-between h-full min-h-[125px]"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div className="w-10 h-10 rounded-2xl bg-rose-50 border border-rose-100 flex items-center justify-center text-xl shadow-xs group-hover:scale-110 transition-transform">
-                  💊
-                </div>
-                <span className="text-[10px] font-bold text-rose-800 bg-rose-50 px-2 py-0.5 rounded-full">
-                  Chemist MRP
-                </span>
-              </div>
-              <div>
-                <h3 className="text-sm sm:text-base font-black text-neutral-900 group-hover:text-brand-600 transition-colors">
-                  Health & Medicine
-                </h3>
-                <p className="text-[11px] text-neutral-500 mt-0.5 leading-snug">
-                  Prescription medicines, chemist strips & healthcare items
-                </p>
-              </div>
-            </button>
-
-            {/* Card 3: P2P Delivery */}
-            <button
-              onClick={() => {
-                setServiceType('PARCEL_PICKUP_DROP');
-                onSelectService('PARCEL_PICKUP_DROP');
-                handleOpenCart();
-              }}
-              className="p-4 sm:p-5 rounded-3xl bg-white border border-[#E8E1D7] text-left hover:border-brand-500/40 hover:shadow-md hover:-translate-y-0.5 active:scale-98 transition-all group flex flex-col justify-between h-full min-h-[125px]"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div className="w-10 h-10 rounded-2xl bg-sky-50 border border-sky-100 flex items-center justify-center text-xl shadow-xs group-hover:scale-110 transition-transform">
-                  📦
-                </div>
-                <span className="text-[10px] font-bold text-sky-800 bg-sky-50 px-2 py-0.5 rounded-full">
-                  Person to Person
-                </span>
-              </div>
-              <div>
-                <h3 className="text-sm sm:text-base font-black text-neutral-900 group-hover:text-brand-600 transition-colors">
-                  P2P Delivery
-                </h3>
-                <p className="text-[11px] text-neutral-500 mt-0.5 leading-snug">
-                  Direct parcel pickup & drop for documents, keys & boxes
-                </p>
-              </div>
-            </button>
-          </div>
-
-          {/* Row 2: 2 cards centered */}
-          <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
-            {/* Card 4: Hybrid AI Order */}
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="w-full sm:w-[calc(33.333%-0.75rem)] p-4 sm:p-5 rounded-3xl bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 text-left hover:border-brand-500/50 hover:shadow-md hover:-translate-y-0.5 active:scale-98 transition-all group flex flex-col justify-between min-h-[125px]"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div className="w-10 h-10 rounded-2xl bg-amber-400 text-neutral-950 flex items-center justify-center text-xl shadow-xs group-hover:scale-110 transition-transform">
-                  ✨
-                </div>
-                <span className="text-[10px] font-black text-amber-950 bg-amber-200 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                  Voice / OCR
-                </span>
-              </div>
-              <div>
-                <h3 className="text-sm sm:text-base font-black text-neutral-900 group-hover:text-brand-600 transition-colors">
-                  Hybrid AI Order
-                </h3>
-                <p className="text-[11px] text-neutral-600 mt-0.5 leading-snug">
-                  Voice order in English/Hindi or upload shopping list photo
-                </p>
-              </div>
-            </button>
-
-            {/* Card 5: Big & Heavy Delivery */}
-            <button
-              onClick={() => {
-                setSelectedCategory('Hardware & Plumbing');
-                setServiceType('CUSTOM_ERRAND');
-                onSelectService('CUSTOM_ERRAND');
-              }}
-              className="w-full sm:w-[calc(33.333%-0.75rem)] p-4 sm:p-5 rounded-3xl bg-white border border-[#E8E1D7] text-left hover:border-brand-500/40 hover:shadow-md hover:-translate-y-0.5 active:scale-98 transition-all group flex flex-col justify-between min-h-[125px]"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div className="w-10 h-10 rounded-2xl bg-purple-50 border border-purple-100 flex items-center justify-center text-xl shadow-xs group-hover:scale-110 transition-transform">
-                  🚚
-                </div>
-                <span className="text-[10px] font-bold text-purple-800 bg-purple-50 px-2 py-0.5 rounded-full">
-                  Heavy Cargo
-                </span>
-              </div>
-              <div>
-                <h3 className="text-sm sm:text-base font-black text-neutral-900 group-hover:text-brand-600 transition-colors">
-                  Big & Heavy Delivery
-                </h3>
-                <p className="text-[11px] text-neutral-500 mt-0.5 leading-snug">
-                  Water pipes, heavy buckets, power strips & home supplies
-                </p>
-              </div>
-            </button>
-          </div>
+          ))}
         </div>
       </section>
 
@@ -1236,7 +1059,7 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
               <div className="space-y-3">
                 <div className="flex items-center justify-between border-b border-[#E8E1D7] pb-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-xl">🥦</span>
+                    <span className="text-xl"></span>
                     <div>
                       <h3 className="text-sm sm:text-base font-extrabold text-neutral-900 tracking-tight">
                         Fresh Farm Mandi & Produce
@@ -1262,7 +1085,7 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
               <div className="space-y-3">
                 <div className="flex items-center justify-between border-b border-[#E8E1D7] pb-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-xl">🔧</span>
+                    <span className="text-xl"></span>
                     <div>
                       <h3 className="text-sm sm:text-base font-extrabold text-neutral-900 tracking-tight">
                         Hardware, Plumbing & Water Utilities
@@ -1288,7 +1111,7 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
               <div className="space-y-3">
                 <div className="flex items-center justify-between border-b border-[#E8E1D7] pb-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-xl">⚡</span>
+                    <span className="text-xl"></span>
                     <div>
                       <h3 className="text-sm sm:text-base font-extrabold text-neutral-900 tracking-tight">
                         Electrical Supplies & Daily Home Electronics
@@ -1340,7 +1163,7 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
               <div className="space-y-3">
                 <div className="flex items-center justify-between border-b border-[#E8E1D7] pb-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-xl">🏪</span>
+                    <span className="text-xl"></span>
                     <div>
                       <h3 className="text-sm sm:text-base font-extrabold text-neutral-900 tracking-tight">
                         Kirana Grocery & Daily Staples
@@ -1366,7 +1189,7 @@ export const CustomerView: React.FC<CustomerViewProps> = ({
               <div className="space-y-3">
                 <div className="flex items-center justify-between border-b border-[#E8E1D7] pb-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-xl">💊</span>
+                    <span className="text-xl"></span>
                     <div>
                       <h3 className="text-sm sm:text-base font-extrabold text-neutral-900 tracking-tight">
                         Pharmacy & Health Essentials

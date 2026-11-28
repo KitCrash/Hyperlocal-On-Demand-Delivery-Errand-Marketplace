@@ -65,7 +65,7 @@ const DEFAULT_BANNER_ADS: Advertisement[] = [
     description: 'Heavy duty plastic storage buckets, stainless steel utensils & cleaning supplies starting at ₹149. Stall #8 New Town Market.',
     imageUrl: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?w=800',
     linkUrl: 'https://example.com/household-essentials',
-    badge: '🏠 Household Super Saver',
+    badge: 'Household Super Saver',
     category: 'HOUSEHOLD',
     type: 'BANNER',
     isActive: true,
@@ -76,7 +76,7 @@ const DEFAULT_BANNER_ADS: Advertisement[] = [
     description: 'Buy 2 Get 1 Free on 9W Energy Saver LED Bulbs, extension power strips and copper wiring cables.',
     imageUrl: 'https://images.unsplash.com/photo-1550009158-9ebf69173e03?w=800',
     linkUrl: 'https://example.com/local-hardware',
-    badge: '⚡ Local Shop Promotion',
+    badge: 'Local Shop Promotion',
     category: 'LOCAL_SHOP',
     type: 'BANNER',
     isActive: true,
@@ -604,7 +604,7 @@ export const AIHybridOrderAssistant: React.FC<AIHybridOrderAssistantProps> = ({
                   {currentPage === 'input' ? 'Hybrid AI Order' : 'Review & Place Order'}
                 </h2>
                 <span className="bg-orange-100 text-orange-800 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
-                  <Sparkles className="w-2.5 h-2.5 text-orange-600" />
+                  
                   Multimodal AI
                 </span>
               </div>
@@ -724,9 +724,7 @@ export const AIHybridOrderAssistant: React.FC<AIHybridOrderAssistantProps> = ({
                       >
                         {isProcessingVoice ? (
                           <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                        )}
+                        ) : null}
                         <span>Extract AI List</span>
                       </button>
                     )}
@@ -970,7 +968,7 @@ export const AIHybridOrderAssistant: React.FC<AIHybridOrderAssistantProps> = ({
                         className="py-1 px-2.5 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-[11px] font-bold transition-colors flex items-center gap-1"
                         title="Merge identical items from voice and image inputs"
                       >
-                        <Sparkles className="w-3 h-3 text-amber-500" />
+                        
                         <span>Merge Duplicates</span>
                       </button>
                       <button
@@ -1030,7 +1028,7 @@ export const AIHybridOrderAssistant: React.FC<AIHybridOrderAssistantProps> = ({
                                 <span className="text-xs font-black text-neutral-900">{item.name}</span>
                                 <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-white border text-neutral-600">
                                   {item.inputMethod === 'VOICE'
-                                    ? '🎙️ Voice'
+                                    ? 'Voice'
                                     : item.inputMethod === 'IMAGE_OCR'
                                     ? '📷 Handwritten'
                                     : '✍️ Typed'}

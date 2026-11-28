@@ -316,6 +316,15 @@ export const Navbar: React.FC<NavbarProps> = ({
                     </div>
                   </div>
 
+                  <a
+                    href="/settings"
+                    onClick={() => setShowProfileMenu(false)}
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-xs font-semibold text-neutral-800 hover:bg-neutral-50 transition-colors mb-1"
+                  >
+                    <span>Settings & Theme</span>
+                    <span className="text-[10px] text-neutral-400">Open</span>
+                  </a>
+
                   <div className="px-2 py-1 text-[10px] font-bold text-neutral-400 uppercase tracking-wider">
                     Switch Quick Role
                   </div>
@@ -480,7 +489,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   }}
                   className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-neutral-800 bg-amber-50/80 border border-amber-200 hover:bg-amber-100/70 transition-all"
                 >
-                  <Sparkles className="w-4 h-4 text-amber-600" />
+                  
                   <span>AI Hybrid Order Assistant</span>
                 </button>
 

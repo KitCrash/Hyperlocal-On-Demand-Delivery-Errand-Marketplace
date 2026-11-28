@@ -188,88 +188,40 @@ export default function CartPage() {
         )}
 
         {/* =========================================================================
-            SECTION 1: SERVICE CATEGORY
-            ========================================================================= */}
-        <section className="bg-white rounded-3xl border border-[#E8E1D7] p-4 sm:p-5 shadow-xs space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider">
-              Service Category
-            </span>
-            <span className="text-[11px] font-bold text-brand-600">
-              {serviceType === 'GROCERY_SHOPPING'
-                ? '🥦 Mandi / Grocery'
-                : serviceType === 'SHOP_TO_HOME'
-                ? '🏪 Shop-to-Home'
-                : serviceType === 'PARCEL_PICKUP_DROP'
-                ? '📦 Parcel Drop'
-                : '⚡ Custom Errand'}
-            </span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2.5 text-xs font-semibold">
-            {[
-              { id: 'GROCERY_SHOPPING', label: '🥦 Mandi / Grocery' },
-              { id: 'SHOP_TO_HOME', label: '🏪 Shop-to-Home' },
-              { id: 'PARCEL_PICKUP_DROP', label: '📦 Parcel Drop' },
-              { id: 'CUSTOM_ERRAND', label: '⚡ Custom Errand' },
-            ].map((s) => (
-              <button
-                key={s.id}
-                onClick={() => setServiceType(s.id as ServiceType)}
-                className={`p-3 rounded-2xl border text-left transition-all ${
-                  serviceType === s.id
-                    ? 'border-brand-600 bg-brand-50 text-brand-900 shadow-sm font-bold ring-1 ring-brand-500/20'
-                    : 'border-[#E8E1D7] bg-white text-neutral-700 hover:bg-neutral-50'
-                }`}
-              >
-                {s.label}
-              </button>
-            ))}
-          </div>
-        </section>
-
-        {/* =========================================================================
-            SECTION 2: SHOPPING ITEMS
+            SECTION 1: SHOPPING ITEMS
             ========================================================================= */}
         <section className="bg-white rounded-3xl border border-[#E8E1D7] p-4 sm:p-5 shadow-xs space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider">
               Shopping Items
             </span>
-            <button
-              onClick={() => {
-                setAiAssistantMode('voice');
-                setIsAiAssistantOpen(true);
-              }}
-              className="text-xs text-brand-600 font-bold flex items-center gap-1.5 hover:underline"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-brand-500" />
-              <span>Add via Voice / OCR</span>
-            </button>
           </div>
 
           {items.length === 0 ? (
             <div className="p-6 rounded-2xl bg-[#FAF7F2] border border-[#E8E1D7] text-center space-y-3">
               <p className="text-xs text-neutral-500">Your shopping list is empty.</p>
               <button
-                onClick={() => {
-                  setAiAssistantMode('voice');
-                  setIsAiAssistantOpen(true);
-                }}
+                onClick={() => router.push('/')}
                 className="py-2.5 px-5 rounded-2xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold shadow-md shadow-brand-600/20 active:scale-95 transition-all"
               >
-                Use AI Voice / OCR Assistant
+                Browse Services
               </button>
             </div>
           ) : (
             <div className="space-y-2.5">
-              {items.map((item, idx) => (
+              {items.map((item, idx) => {
+                const isPerishable =
+                  serviceType === 'GROCERY_SHOPPING' ||
+                  /veg|fruit|onion|tomato|potato|mango|apple|banana|mandi|fresh|greens|spinach|coriander/i.test(
+                    `${item.name} ${item.category || ''}`
+                  );
+                return (
                 <div
                   key={idx}
                   className="p-3 rounded-2xl bg-neutral-50 border border-[#E8E1D7] flex items-center justify-between gap-3"
                 >
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="text-xs sm:text-sm font-bold text-neutral-900 truncate">
                         {item.name}
                       </span>
@@ -285,6 +237,11 @@ export default function CartPage() {
                     <span className="text-[11px] text-neutral-500 block mt-0.5">
                       Est: ₹{item.estimatedPrice} ({item.unit})
                     </span>
+                    {isPerishable && (
+                      <span className="text-[10px] text-amber-800 bg-amber-50 border border-amber-200 font-semibold px-1.5 py-0.5 rounded inline-block mt-1">
+                        Non-refundable & Non-returnable (Local Market)
+                      </span>
+                    )}
                   </div>
 
                   {/* Quantity Stepper */}
@@ -341,7 +298,8 @@ export default function CartPage() {
                     </button>
                   </div>
                 </div>
-              ))}
+                );
+              })}
 
               {/* Multimodal deduplication action if multiple items exist */}
               {items.length > 1 && (
@@ -350,7 +308,6 @@ export default function CartPage() {
                   disabled={isCombining}
                   className="w-full py-2 px-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-bold hover:bg-amber-100 flex items-center justify-center gap-1.5 transition-colors"
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-600" />
                   <span>{isCombining ? 'Analyzing Duplicates...' : 'Auto-Merge Voice & Image Duplicates'}</span>
                 </button>
               )}

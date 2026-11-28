@@ -66,9 +66,68 @@ router.post('/parse-voice', async (req, res): Promise<void> => {
 // POST /api/ai/parse-image
 router.post('/parse-image', async (req, res): Promise<void> => {
   try {
-    const { imageText, imageUrl } = req.body;
+    const { imageText, imageUrl, imageBase64, mimeType = 'image/jpeg' } = req.body;
 
-    // Use imageText if provided from frontend OCR/canvas or sample
+    // Use Gemini Vision API if imageBase64 and GEMINI_API_KEY are available
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (imageBase64 && apiKey) {
+      try {
+        const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+        const geminiRes = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [
+                    {
+                      text: 'Extract all shopping/errand items from this image (handwritten or printed). Return ONLY a valid JSON array of objects with fields: name (string), quantity (number, default 1), unit (string, e.g. "kg", "g", "pack", "piece"), estimatedPrice (number in INR, default 40). No markdown, no extra text.',
+                    },
+                    {
+                      inline_data: {
+                        mime_type: mimeType,
+                        data: cleanBase64,
+                      },
+                    },
+                  ],
+                },
+              ],
+            }),
+          }
+        );
+
+        if (geminiRes.ok) {
+          const data: any = await geminiRes.json();
+          const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          const jsonMatch = rawText.match(/\[[\s\S]*\]/);
+          if (jsonMatch) {
+            const parsedItems = JSON.parse(jsonMatch[0]).map((item: any) => ({
+              name: String(item.name || 'Item'),
+              quantity: Number(item.quantity) || 1,
+              unit: String(item.unit || 'unit'),
+              estimatedPrice: Number(item.estimatedPrice) || 40,
+              inputMethod: 'IMAGE_OCR',
+              confidenceScore: 0.95,
+              uncertaintyFlag: false,
+            }));
+            res.json({
+              imageUrl,
+              extractedText: rawText,
+              extractedCount: parsedItems.length,
+              items: parsedItems,
+              provider: 'gemini-2.5-flash',
+            });
+            return;
+          }
+        }
+      } catch (geminiErr) {
+        console.warn('Gemini OCR fallback triggered:', geminiErr);
+      }
+    }
+
+    // Fallback: Use imageText if provided from frontend OCR/canvas or sample
     const textToProcess = imageText || '1kg Onion, 1kg Potato, 250g Green Chilli';
 
     const items = await parseMultilingualOrderText(textToProcess, 'IMAGE_OCR');

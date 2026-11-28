@@ -167,10 +167,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               </span>
               <div className="grid grid-cols-2 gap-2 text-xs font-semibold">
                 {[
-                  { id: 'GROCERY_SHOPPING', label: '🥦 Mandi / Grocery' },
-                  { id: 'SHOP_TO_HOME', label: '🏪 Shop-to-Home' },
-                  { id: 'PARCEL_PICKUP_DROP', label: '📦 Parcel Drop' },
-                  { id: 'CUSTOM_ERRAND', label: '⚡ Custom Errand' },
+                  { id: 'GROCERY_SHOPPING', label: 'Mandi / Grocery' },
+                  { id: 'SHOP_TO_HOME', label: 'Shop-to-Home' },
+                  { id: 'PARCEL_PICKUP_DROP', label: 'Parcel Drop' },
+                  { id: 'CUSTOM_ERRAND', label: 'Custom Errand' },
                 ].map((s) => (
                   <button
                     key={s.id}
@@ -197,7 +197,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   onClick={onOpenAiAssistant}
                   className="text-xs text-brand-600 font-bold flex items-center gap-1 hover:underline"
                 >
-                  <Sparkles className="w-3.5 h-3.5" />
+                  
                   Add via Voice / OCR
                 </button>
               </div>
